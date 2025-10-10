@@ -195,59 +195,98 @@ from __future__ import print_function as _print_function
 
 version = '0.13.5'
 
+# Variável de estado para a abstração do AltGr, gerenciada centralmente.
+_ABSTRACT_ALT_GR = True
+
 import re as _re
 import itertools as _itertools
 import collections as _collections
 from threading import Thread as _Thread, Lock as _Lock
 import time as _time
-# Python2... Buggy on time changes and leap seconds, but no other good option (https://stackoverflow.com/questions/1205722/how-do-i-get-monotonic-time-durations-in-python).
 _time.monotonic = getattr(_time, 'monotonic', None) or _time.time
 
 try:
-    # Python2
     long, basestring
     _is_str = lambda x: isinstance(x, basestring)
     _is_number = lambda x: isinstance(x, (int, long))
     import Queue as _queue
-    # threading.Event is a function in Python2 wrappin _Event (?!).
     from threading import _Event as _UninterruptibleEvent
 except NameError:
-    # Python3
     _is_str = lambda x: isinstance(x, str)
     _is_number = lambda x: isinstance(x, int)
     import queue as _queue
     from threading import Event as _UninterruptibleEvent
 _is_list = lambda x: isinstance(x, (list, tuple))
 
-# Just a dynamic object to store attributes for the closures.
 class _State(object): pass
 
-# The "Event" class from `threading` ignores signals when waiting and is
-# impossible to interrupt with Ctrl+C. So we rewrite `wait` to wait in small,
-# interruptible intervals.
 class _Event(_UninterruptibleEvent):
     def wait(self):
         while True:
             if _UninterruptibleEvent.wait(self, 0.5):
                 break
 
-import platform as _platform
-if _platform.system() == 'Windows':
-    from. import _winkeyboard as _os_keyboard
-elif _platform.system() == 'Linux':
-    from. import _nixkeyboard as _os_keyboard
-elif _platform.system() == 'Darwin':
-    try:
-        from. import _darwinkeyboard as _os_keyboard
-    except ImportError:
-        # This can happen during setup if pyobj wasn't already installed
-        pass
-else:
-    raise OSError("Unsupported platform '{}'".format(_platform.system()))
-
+# Carrega as dependências base antes do backend para evitar import circular.
 from ._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
 from ._generic import GenericListener as _GenericListener
 from ._canonical_names import all_modifiers, sided_modifiers, normalize_name
+
+# Lógica de importação do backend específico do SO.
+import platform as _platform
+if _platform.system() == 'Windows':
+    from . import _winkeyboard as _os_keyboard
+elif _platform.system() == 'Linux':
+    from . import _nixkeyboard as _os_keyboard
+elif _platform.system() == 'Darwin':
+    from . import _darwinkeyboard as _os_keyboard
+else:
+    raise OSError("Unsupported platform '{}'".format(_platform.system()))
+
+# Funções públicas para controlar as novas funcionalidades.
+def set_alt_gr_abstraction(enabled):
+    """
+    Habilita ou desabilita a abstração da tecla AltGr no backend do Windows.
+
+    Por padrão, a biblioteca trata a sequência de eventos do Windows para 'AltGr'
+    (Right Alt + Left Ctrl) como um único evento 'alt gr'. Desabilitar esta
+    opção fará com que os eventos brutos sejam reportados.
+
+    Args:
+        enabled (bool): True para habilitar a abstração (padrão), False para desabilitar.
+    """
+    global _ABSTRACT_ALT_GR
+    _ABSTRACT_ALT_GR = bool(enabled)
+    # Notifica o backend para se reconfigurar, se necessário.
+    if hasattr(_os_keyboard, 'rebuild_name_tables'):
+        _os_keyboard.rebuild_name_tables()
+
+def get_alt_gr_abstraction_state():
+    """ Retorna o estado atual da abstração do AltGr (True se habilitada). """
+    return _ABSTRACT_ALT_GR
+
+# Importa as demais funções do backend.
+try:
+    from ._os_keyboard import (
+        force_reset_keyboard,
+        get_stuck_keys,
+        _reset_internal_state as reset_internal_state
+    )
+except ImportError:
+    def force_reset_keyboard():
+        """
+        Função de fallback para SOs não-Windows. Não faz nada.
+        """
+        pass
+    def get_stuck_keys():
+        """
+        Função de fallback para SOs não-Windows. Retorna uma lista vazia.
+        """
+        return []
+    def reset_internal_state():
+        """
+        Função de fallback para SOs não-Windows. Não faz nada.
+        """
+        pass
 
 _modifier_scan_codes = set()
 def is_modifier(key):

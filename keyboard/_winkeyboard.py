@@ -16,9 +16,14 @@ import atexit
 import traceback
 from threading import Lock
 from collections import defaultdict
+import time
 
 from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import normalize_name
+
+_altgr_right_alt_scan_code = None
+_altgr_right_alt_flags = None
+
 try:
     # Force Python2 to convert to unicode and not to str.
     chr = unichr
@@ -120,6 +125,10 @@ keyboard_state_type = c_uint8 * 256
 GetKeyboardState = user32.GetKeyboardState
 GetKeyboardState.argtypes = [keyboard_state_type]
 GetKeyboardState.restype = BOOL
+
+GetAsyncKeyState = user32.GetAsyncKeyState
+GetAsyncKeyState.argtypes = [c_int]
+GetAsyncKeyState.restype = c_short
 
 GetKeyNameText = user32.GetKeyNameTextW
 GetKeyNameText.argtypes = [c_long, LPWSTR, c_int]
@@ -415,11 +424,13 @@ def _setup_name_tables():
                         for i, name in enumerate(map(normalize_name, names + lowercase_names)):
                             from_name[name].append((i, entry))
 
+
         # TODO: single quotes on US INTL is returning the dead key (?), and therefore
         # not typing properly.
 
         # Alt gr is way outside the usual range of keys (0..127) and on my
-        # computer is named as 'ctrl'. Therefore we add it manually and hope
+        # computer is named as 'ctrl'.
+        # Therefore we add it manually and hope
         # Windows is consistent in its inconsistency.
         for extended in [0, 1]:
             for modifiers in distinct_modifiers:
@@ -434,6 +445,53 @@ def _setup_name_tables():
         return modifiers_preference[modifiers], i, extended, vk, scan_code
     for name, entries in list(from_name.items()):
         from_name[name] = sorted(set(entries), key=order_key)
+
+# COLE ESTAS DUAS FUNÇÕES DEPOIS DE _setup_name_tables()
+
+def get_modifiers(altgr_is_pressed):
+    """
+    Retorna uma tupla com os nomes dos modificadores atualmente ativos.
+    """
+    return (
+        ('shift',) * (user32.GetKeyState(0x10) & 0x8000) +
+        ('alt gr',) * altgr_is_pressed +
+        ('num lock',) * (user32.GetKeyState(0x90) & 1) +
+        ('caps lock',) * (user32.GetKeyState(0x14) & 1) +
+        ('scroll lock',) * (user32.GetKeyState(0x91) & 1)
+    )
+
+def get_name(scan_code, vk, is_extended, modifiers):
+    """
+    Obtém o nome mais provável para um evento de tecla, dados os modificadores.
+    """
+    entry = (scan_code, vk, is_extended, modifiers)
+    if entry not in to_name:
+        # Popula a tabela se a combinação for nova
+        to_name[entry] = list(get_event_names(*entry))
+
+    names = to_name[entry]
+    return names[0] if names else None
+
+# O resto do arquivo continua aqui (init = _setup_name_tables, keypad_keys = [...], etc.)
+
+def _remove_alt_gr_mapping():
+    """
+    Remove ativamente o mapeamento sintético 'alt gr' das tabelas de nomes
+    se elas já tiverem sido criadas.
+    """
+    with tables_lock:
+        if 'alt gr' in from_name:
+            # Remove a entrada da tabela de tradução de nome para código
+            del from_name['alt gr']
+            
+            # Encontra e remove todas as entradas da tabela de tradução de código para nome
+            # que correspondem ao 'alt gr' sintético (scan_code=541, vk_code=162).
+            keys_to_remove = [
+                key for key in to_name 
+                if key[0] == 541 and key[1] == 162
+            ]
+            for key in keys_to_remove:
+                del to_name[key]
 
 # Called by keyboard/__init__.py
 init = _setup_name_tables
@@ -495,50 +553,89 @@ def prepare_intercept(callback):
     """
     _setup_name_tables()
     
-    def process_key(event_type, vk, scan_code, is_extended):
-        global shift_is_pressed, altgr_is_pressed, ignore_next_right_alt
-        #print(event_type, vk, scan_code, is_extended)
+    def rebuild_name_tables():
+        """
+        Força a limpeza e reconstrução das tabelas de nomes.
+        Chamado pelo __init__.py quando a configuração de abstração muda.
+        """
+        _clear_name_tables()
+        _setup_name_tables()
 
-        # Pressing alt-gr also generates an extra "right alt" event
-        if vk == 0xA5 and ignore_next_right_alt:
-            ignore_next_right_alt = False
-            return True
+    # Adicionado 'flags' como parâmetro da função 'process_key'.
+    # A função 'process_key' agora irá verificar o switch.
+    def process_key(event_type, vk, scan_code, is_extended, flags):
+        """
+        Callback que processa os eventos, lendo o estado de abstração do módulo principal.
+        """
+        # Importação local para evitar ciclo e ler o estado atualizado.
+        import keyboard
+        
+        global altgr_is_pressed, shift_is_pressed
 
-        modifiers = (
-            ('shift',) * shift_is_pressed +
-            ('alt gr',) * altgr_is_pressed +
-            ('num lock',) * (user32.GetKeyState(0x90) & 1) +
-            ('caps lock',) * (user32.GetKeyState(0x14) & 1) +
-            ('scroll lock',) * (user32.GetKeyState(0x91) & 1)
-        )
-        entry = (scan_code, vk, is_extended, modifiers)
-        if entry not in to_name:
-            to_name[entry] = list(get_event_names(*entry))
+        # Se a abstração estiver DESLIGADA, ignora o Ctrl sintético.
+        if not keyboard._ABSTRACT_ALT_GR and scan_code == 541:
+            return True # Suprime o evento
 
-        names = to_name[entry]
-        name = names[0] if names else None
+        # Se a abstração estiver LIGADA, combina os eventos.
+        if keyboard._ABSTRACT_ALT_GR:
+            global _altgr_right_alt_scan_code, _altgr_right_alt_flags
+            if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
+                if scan_code == 541: # É o Ctrl sintético
+                    altgr_is_pressed = True
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='alt gr', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    callback(event)
+                    _altgr_right_alt_scan_code = None
+                    _altgr_right_alt_flags = None
+                    return True # Suprime o Ctrl sintético
+                else: # Não era, libera o Right Alt que estava pendente.
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='right alt', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    callback(event)
+                    _altgr_right_alt_scan_code = None
+                    _altgr_right_alt_flags = None
+            
+            if vk == 165: # É um Right Alt (VK 165)
+                if event_type == KEY_DOWN: # Pressionado, segura e espera o Ctrl.
+                    _altgr_right_alt_scan_code = scan_code
+                    _altgr_right_alt_flags = flags
+                    return True # Suprime o Right Alt temporariamente
+                else: # Solto, conclui o evento 'alt gr'.
+                    altgr_is_pressed = False
+                    event = KeyboardEvent('up', scan_code, name='alt gr', is_keypad=is_extended, flags=flags)
+                    callback(event)
+                    return True
+            
+            # Ignora o KeyUp do Ctrl sintético.
+            if scan_code == 541 and event_type == KEY_UP:
+                return True
 
-        # TODO: inaccurate when holding multiple different shifts.
+        # Lógica Padrão para todas as outras teclas.
         if vk in shift_vks:
             shift_is_pressed = event_type == KEY_DOWN
-        if scan_code == 541 and vk == 162:
-            ignore_next_right_alt = True
-            altgr_is_pressed = event_type == KEY_DOWN
 
-        is_keypad = (scan_code, vk, is_extended) in keypad_keys
-        return callback(KeyboardEvent(event_type=event_type, scan_code=scan_code or -vk, name=name, is_keypad=is_keypad))
+        modifiers = get_modifiers(altgr_is_pressed)
+        
+        if not keyboard._ABSTRACT_ALT_GR and vk == 165:
+            name = 'alt gr'
+        else:
+            name = get_name(scan_code, vk, is_extended, modifiers)
+
+        event = KeyboardEvent(event_type=event_type, scan_code=scan_code, name=name, is_keypad=is_extended, flags=flags)
+        return callback(event)
 
     def low_level_keyboard_handler(nCode, wParam, lParam):
         try:
             vk = lParam.contents.vk_code
-            # Ignore the second `alt` DOWN observed in some cases.
             fake_alt = (LLKHF_INJECTED | 0x20)
-            # Ignore events generated by SendInput with Unicode.
             if vk != VK_PACKET and lParam.contents.flags & fake_alt != fake_alt:
                 event_type = KEY_UP if wParam & 0x01 else KEY_DOWN
-                is_extended = lParam.contents.flags & 1
+                
+                raw_flags = lParam.contents.flags
+                processed_flags = raw_flags & 1 # Isola o bit LLKHF_EXTENDED
+                is_extended = processed_flags
                 scan_code = lParam.contents.scan_code
-                should_continue = process_key(event_type, vk, scan_code, is_extended)
+                
+                should_continue = process_key(event_type, vk, scan_code, is_extended, processed_flags)
+
                 if not should_continue:
                     return -1
         except Exception as e:
@@ -556,6 +653,13 @@ def prepare_intercept(callback):
     # Register to remove the hook when the interpreter exits. Unfortunately a
     # try/finally block doesn't seem to work here.
     atexit.register(UnhookWindowsHookEx, keyboard_callback)
+
+def _clear_name_tables():
+    """ Limpa as tabelas de nomes para que possam ser reconstruídas. """
+    with tables_lock:
+        to_name.clear()
+        from_name.clear()
+        scan_code_to_vk.clear()
 
 def listen(callback):
     prepare_intercept(callback)
@@ -618,3 +722,63 @@ if __name__ == '__main__':
     pprint.pprint(to_name)
     pprint.pprint(from_name)
     #listen(lambda e: print(e.to_json()) or True)
+
+def force_reset_keyboard():
+    """
+    Força o sistema operacional (Windows) a liberar quaisquer teclas modificadoras
+    que possam ter ficado "presas".
+
+    Para cada tecla detectada como presa, simula 5 cliques (pressionar e soltar)
+    rapidamente para garantir que o sistema operacional atualize seu estado.
+    """
+    # Lista de virtual key codes para as principais teclas modificadoras
+    vk_codes = [
+        0x10, 0xA0, 0xA1,  # Shift, Left Shift, Right Shift
+        0x11, 0xA2, 0xA3,  # Ctrl, Left Ctrl, Right Ctrl
+        0x12, 0xA4, 0xA5,  # Alt, Left Alt, Right Alt (AltGr)
+        0x5B, 0x5C        # Left Windows, Right Windows
+    ]
+    
+    for vk in vk_codes:
+        # Verifica se a tecla está "presa" (bit mais significativo está 1)
+        if user32.GetKeyState(vk) & 0x8000:
+            for _ in range(5):
+                # Envia um evento de KEY DOWN (pressionar)
+                user32.keybd_event(vk, 0, 0, 0)
+                # Envia um evento de KEY UP (soltar)
+                user32.keybd_event(vk, 0, KEYEVENTF_KEYUP, 0)
+                # Pequena pausa para o SO processar
+                time.sleep(0.01)
+
+# Esta função você já deve ter no final do arquivo, mantenha-a.
+def _reset_internal_state():
+    """
+    Limpa as variáveis de estado internas da biblioteca usadas para o tratamento
+    do AltGr, garantindo um estado limpo entre execuções ou testes.
+    """
+    global _altgr_right_alt_scan_code, _altgr_right_alt_flags, altgr_is_pressed, ignore_next_right_alt
+    _altgr_right_alt_scan_code = None
+    _altgr_right_alt_flags = None
+    altgr_is_pressed = False
+    ignore_next_right_alt = False
+
+def get_stuck_keys():
+    """
+    Verifica o estado físico de todas as teclas modificadoras principais usando
+    GetAsyncKeyState e retorna uma lista com os nomes daquelas que estão presas.
+    """
+    stuck_keys = []
+    vk_codes_with_names = {
+        0x10: 'shift', 0xA0: 'left shift', 0xA1: 'right shift',
+        0x11: 'ctrl', 0xA2: 'left ctrl', 0xA3: 'right ctrl',
+        0x12: 'alt', 0xA4: 'left alt', 0xA5: 'right alt',
+        0x5B: 'left windows', 0x5C: 'right windows'
+    }
+    
+    for vk, name in vk_codes_with_names.items():
+        # A verificação de bit mais significativo (0x8000) funciona para ambas as funções.
+        # A diferença é que GetAsyncKeyState verifica o estado físico atual.
+        if GetAsyncKeyState(vk) & 0x8000:
+            stuck_keys.append(name)
+            
+    return stuck_keys
