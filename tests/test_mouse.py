@@ -2,8 +2,8 @@
 import unittest
 import time
 
-from ._mouse_event import MoveEvent, ButtonEvent, WheelEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE
-from keyboard import mouse
+from directkeys._mouse_event import MoveEvent, ButtonEvent, WheelEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE
+from directkeys import mouse
 
 class FakeOsMouse(object):
     def __init__(self):

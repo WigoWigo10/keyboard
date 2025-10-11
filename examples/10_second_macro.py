@@ -1,7 +1,7 @@
-import keyboard
+import directkeys
 import time
 
-keyboard.start_recording()
+directkeys.start_recording()
 time.sleep(10)
-events = keyboard.stop_recording()
-keyboard.replay(events)
+events = directkeys.stop_recording()
+directkeys.replay(events)

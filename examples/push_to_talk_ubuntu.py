@@ -1,6 +1,6 @@
 #quick and dirty push-to-talk example for Ubuntu 16.04, by Abd Azrad 
 
-import keyboard
+import directkeys
 import subprocess
 
 is_muted = False
@@ -21,7 +21,7 @@ if __name__ == "__main__":
 	is_muted = True
 	mute() # mute on startup
 
-	keyboard.add_hotkey('win', unmute) # unmute on keydown
-	keyboard.add_hotkey('win', mute, trigger_on_release=True) # mute on keyup
+	directkeys.add_hotkey('win', unmute) # unmute on keydown
+	directkeys.add_hotkey('win', mute, trigger_on_release=True) # mute on keyup
 
-	keyboard.wait() # wait forever
+	directkeys.wait() # wait forever

@@ -28,13 +28,13 @@ import os
 from subprocess import run, check_output
 import atexit
 import requests
-import keyboard
+import directkeys
 
 run(['make', 'clean', 'build'], check=True)
 
-assert re.fullmatch(r'\d+\.\d+\.\d+', keyboard.version)
+assert re.fullmatch(r'\d+\.\d+\.\d+', directkeys.version)
 last_version = check_output(['git', 'describe', '--abbrev=0'], universal_newlines=True).strip('v\n')
-assert keyboard.version != last_version, 'Must update keyboard.version first.'
+assert directkeys.version != last_version, 'Must update directkeys.version first.'
 
 commits = check_output(['git', 'log', 'v{}..HEAD'.format(last_version), '--oneline'], universal_newlines=True)
 with open('message.txt', 'w') as message_file:
@@ -60,10 +60,10 @@ with open('message.txt', 'w') as message_file:
 with open('CHANGES.md') as changes_file:
     old_changes = changes_file.read()
 with open('CHANGES.md', 'w') as changes_file:
-    changes_file.write('# {}\n\n{}\n\n\n{}'.format(keyboard.version, message, old_changes))
+    changes_file.write('# {}\n\n{}\n\n\n{}'.format(directkeys.version, message, old_changes))
 
 
-tag_name = 'v' + keyboard.version
+tag_name = 'v' + directkeys.version
 if input('Commit README.md and CHANGES.md files? ').lower().startswith('y'):
     run(['git', 'add', 'CHANGES.md', 'README.md'])
     run(['git', 'commit', '-m', 'Update changes for {}'.format(tag_name)])

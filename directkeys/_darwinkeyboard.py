@@ -5,7 +5,7 @@ import time
 import os
 import threading
 from AppKit import NSEvent
-from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import normalize_name
 from collections import defaultdict
 
