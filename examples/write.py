@@ -4,8 +4,8 @@ text character-by-character.
 """
 import sys
 sys.path.append('../')
-import keyboard
+import directkeys
 import fileinput
 
 for line in fileinput.input():
-	keyboard.write(line)
+	directkeys.write(line)

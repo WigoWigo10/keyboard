@@ -3,7 +3,7 @@ import struct
 import traceback
 from time import time as now
 from collections import namedtuple
-from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import all_modifiers, normalize_name
 from ._nixcommon import EV_KEY, aggregate_devices
 

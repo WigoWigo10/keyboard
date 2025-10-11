@@ -7,7 +7,7 @@ time to speak between segments.
 """
 import sys
 sys.path.append('../')
-import keyboard
+import directkeys
 import pickle
 import os
 
@@ -21,8 +21,8 @@ if os.path.exists(filename):
     for i, segment in enumerate(segments):
         print('Press F1 to play segment {}/{}'.format(i+1, len(segments)))
         print('Duration: {:.02} seconds'.format(segment[-1].time - segment[0].time))
-        keyboard.wait('F1')
-        keyboard.play(segment)
+        directkeys.wait('F1')
+        directkeys.play(segment)
 
 else:
     print('Press F1 to save this fragment. Press F2 to discard it. Press F3 to stop recording.')
@@ -33,22 +33,22 @@ else:
     def handle_event(event):
         global segment
 
-        if keyboard.matches(event, 'F1'):
-            if event.event_type == keyboard.KEY_DOWN:
+        if directkeys.matches(event, 'F1'):
+            if event.event_type == directkeys.KEY_DOWN:
                 if segment:
                     segments.append(segment)
                 segment = []
                 print('Saved', len(segments))
-        elif keyboard.matches(event, 'F2'):
-            if event.event_type == keyboard.KEY_DOWN:
+        elif directkeys.matches(event, 'F2'):
+            if event.event_type == directkeys.KEY_DOWN:
                 segment = []
                 print('Discarded')
         else:
             segment.append(event)
 
-    keyboard.hook(handle_event)
-    keyboard.wait('F3')
-    keyboard.hook(handle_event)
+    directkeys.hook(handle_event)
+    directkeys.wait('F3')
+    directkeys.hook(handle_event)
 
     pickle.dump(segments, open(filename, 'wb'))
     print('Saved {} segments to {}'.format(len(segments), filename))

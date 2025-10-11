@@ -14,7 +14,7 @@ Take full control of your keyboard with this small Python library. Hook global e
 - **Zero dependencies**. Trivial to install and deploy, just copy the files.
 - **Python 2 and 3**.
 - Complex hotkey support (e.g. `ctrl+shift+m, ctrl+space`) with controllable timeout.
-- Includes **high level API** (e.g. [record](#keyboard.record) and [play](#keyboard.play), [add_abbreviation](#keyboard.add_abbreviation)).
+- Includes **high level API** (e.g. [record](#directkeys.record) and [play](#directkeys.play), [add_abbreviation](#directkeys.add_abbreviation)).
 - Maps keys as they actually are in your layout, with **full internationalization support** (e.g. `Ctrl+ç`).
 - Events automatically captured in separate thread, doesn't block main program.
 - Tested and documented.
@@ -41,30 +41,30 @@ Then check the [API docs below](https://github.com/boppreh/keyboard#api) to see 
 Use as library:
 
 ```py
-import keyboard
+import directkeys
 
-keyboard.press_and_release('shift+s, space')
+directkeys.press_and_release('shift+s, space')
 
-keyboard.write('The quick brown fox jumps over the lazy dog.')
+directkeys.write('The quick brown fox jumps over the lazy dog.')
 
-keyboard.add_hotkey('ctrl+shift+a', print, args=('triggered', 'hotkey'))
+directkeys.add_hotkey('ctrl+shift+a', print, args=('triggered', 'hotkey'))
 
 # Press PAGE UP then PAGE DOWN to type "foobar".
-keyboard.add_hotkey('page up, page down', lambda: keyboard.write('foobar'))
+directkeys.add_hotkey('page up, page down', lambda: directkeys.write('foobar'))
 
 # Blocks until you press esc.
-keyboard.wait('esc')
+directkeys.wait('esc')
 
 # Record events until 'esc' is pressed.
-recorded = keyboard.record(until='esc')
+recorded = directkeys.record(until='esc')
 # Then replay back at three times the speed.
-keyboard.play(recorded, speed_factor=3)
+directkeys.play(recorded, speed_factor=3)
 
 # Type @@ then press space to replace with abbreviation.
-keyboard.add_abbreviation('@@', 'my.long.email@example.com')
+directkeys.add_abbreviation('@@', 'my.long.email@example.com')
 
 # Block forever, like `while True`.
-keyboard.wait()
+directkeys.wait()
 ```
 
 Use as standalone module:
@@ -97,15 +97,15 @@ python -m keyboard < events.txt
 ### Preventing the program from closing
 
 ```py
-import keyboard
-keyboard.add_hotkey('space', lambda: print('space was pressed!'))
+import directkeys
+directkeys.add_hotkey('space', lambda: print('space was pressed!'))
 # If the program finishes, the hotkey is not in effect anymore.
 
 # Don't do this! This will use 100% of your CPU.
 #while True: pass
 
 # Use this instead
-keyboard.wait()
+directkeys.wait()
 
 # or this
 import time
@@ -116,63 +116,63 @@ while True:
 ### Waiting for a key press one time
 
 ```py
-import keyboard
+import directkeys
 
 # Don't do this! This will use 100% of your CPU until you press the key.
 #
-#while not keyboard.is_pressed('space'):
+#while not directkeys.is_pressed('space'):
 #    continue
 #print('space was pressed, continuing...')
 
 # Do this instead
-keyboard.wait('space')
+directkeys.wait('space')
 print('space was pressed, continuing...')
 ```
 
 ### Repeatedly waiting for a key press
 
 ```py
-import keyboard
+import directkeys
 
 # Don't do this!
 #
 #while True:
-#    if keyboard.is_pressed('space'):
+#    if directkeys.is_pressed('space'):
 #        print('space was pressed!')
 #
 # This will use 100% of your CPU and print the message many times.
 
 # Do this instead
 while True:
-    keyboard.wait('space')
+    directkeys.wait('space')
     print('space was pressed! Waiting on it again...')
 
 # or this
-keyboard.add_hotkey('space', lambda: print('space was pressed!'))
-keyboard.wait()
+directkeys.add_hotkey('space', lambda: print('space was pressed!'))
+directkeys.wait()
 ```
 
 ### Invoking code when an event happens
 
 ```py
-import keyboard
+import directkeys
 
 # Don't do this! This will call `print('space')` immediately then fail when the key is actually pressed.
-#keyboard.add_hotkey('space', print('space was pressed'))
+#directkeys.add_hotkey('space', print('space was pressed'))
 
 # Do this instead
-keyboard.add_hotkey('space', lambda: print('space was pressed'))
+directkeys.add_hotkey('space', lambda: print('space was pressed'))
 
 # or this
 def on_space():
     print('space was pressed')
-keyboard.add_hotkey('space', on_space)
+directkeys.add_hotkey('space', on_space)
 
 # or this
 while True:
     # Wait for the next event.
-    event = keyboard.read_event()
-    if event.event_type == keyboard.KEY_DOWN and event.name == 'space':
+    event = directkeys.read_event()
+    if event.event_type == directkeys.KEY_DOWN and event.name == 'space':
         print('space was pressed')
 ```
 
@@ -180,9 +180,9 @@ while True:
 
 ```py
 # Don't do this! The `keyboard` module is meant for global events, even when your program is not in focus.
-#import keyboard
+#import directkeys
 #print('Press any key to continue...')
-#keyboard.get_event()
+#directkeys.get_event()
 
 # Do this instead
 input('Press enter to continue...')
@@ -193,7 +193,7 @@ input('Press enter to continue...')
 """
 from __future__ import print_function as _print_function
 
-version = '0.13.5'
+version = '1.0.0'
 
 # Variável de estado para a abstração do AltGr, gerenciada centralmente.
 _ABSTRACT_ALT_GR = True
@@ -598,7 +598,7 @@ def hook(callback, suppress=False, on_remove=lambda: None):
     Installs a global listener on all available keyboards, invoking `callback`
     each time a key is pressed or released.
     
-    The event passed to the callback is of type `keyboard.KeyboardEvent`,
+    The event passed to the callback is of type `directkeys.KeyboardEvent`,
     with the following attributes:
 
     - `name`: an Unicode representation of the character (e.g. "&") or
@@ -1190,7 +1190,7 @@ def record(until='escape', suppress=False, trigger_on_release=False):
     """
     Records all keyboard events from all keyboards until the user presses the
     given hotkey. Then returns the list of events recorded, of type
-    `keyboard.KeyboardEvent`. Pairs well with
+    `directkeys.KeyboardEvent`. Pairs well with
     `play(events)`.
 
     Note: this is a blocking function.

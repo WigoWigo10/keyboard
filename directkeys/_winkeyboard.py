@@ -18,7 +18,7 @@ from threading import Lock
 from collections import defaultdict
 import time
 
-from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import normalize_name
 
 _altgr_right_alt_scan_code = None
@@ -325,7 +325,7 @@ official_virtual_keys = {
     0xbc: (',', False),
     0xbd: ('-', False),
     0xbe: ('.', False),
-    #0xbe:('/', False), # Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '/?.
+    #0xbe:('/', False), # Used for miscellaneous characters; it can vary by directkeys. For the US standard keyboard, the '/?.
     0xe5: ('ime process', False),
     0xf6: ('attn', False),
     0xf7: ('crsel', False),
@@ -568,16 +568,16 @@ def prepare_intercept(callback):
         Callback que processa os eventos, lendo o estado de abstração do módulo principal.
         """
         # Importação local para evitar ciclo e ler o estado atualizado.
-        import keyboard
+        import directkeys
         
         global altgr_is_pressed, shift_is_pressed
 
         # Se a abstração estiver DESLIGADA, ignora o Ctrl sintético.
-        if not keyboard._ABSTRACT_ALT_GR and scan_code == 541:
+        if not directkeys._ABSTRACT_ALT_GR and scan_code == 541:
             return True # Suprime o evento
 
         # Se a abstração estiver LIGADA, combina os eventos.
-        if keyboard._ABSTRACT_ALT_GR:
+        if directkeys._ABSTRACT_ALT_GR:
             global _altgr_right_alt_scan_code, _altgr_right_alt_flags
             if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
                 if scan_code == 541: # É o Ctrl sintético
@@ -614,7 +614,7 @@ def prepare_intercept(callback):
 
         modifiers = get_modifiers(altgr_is_pressed)
         
-        if not keyboard._ABSTRACT_ALT_GR and vk == 165:
+        if not directkeys._ABSTRACT_ALT_GR and vk == 165:
             name = 'alt gr'
         else:
             name = get_name(scan_code, vk, is_extended, modifiers)

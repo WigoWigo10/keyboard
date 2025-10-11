@@ -1,4 +1,4 @@
-import keyboard
+import directkeys
 import time
 import subprocess
 import sys
@@ -9,8 +9,8 @@ def read_next_keydown(suppress=True):
     ignorando os eventos KEY_UP.
     """
     while True:
-        event = keyboard.read_event(suppress=suppress)
-        if event.event_type == keyboard.KEY_DOWN:
+        event = directkeys.read_event(suppress=suppress)
+        if event.event_type == directkeys.KEY_DOWN:
             return event
 
 def test_raw_event_capture():
@@ -23,7 +23,7 @@ def test_raw_event_capture():
     print("Siga as instruções abaixo.")
     print("-" * 50)
 
-    keyboard.set_alt_gr_abstraction(False)
+    directkeys.set_alt_gr_abstraction(False)
     
     print("1. Pressione e solte 'AltGr'...")
     alt_gr_event = read_next_keydown()
@@ -44,7 +44,7 @@ def test_raw_event_capture():
 
     print("✅ Teste 1: SUCESSO!")
     
-    keyboard.set_alt_gr_abstraction(True)
+    directkeys.set_alt_gr_abstraction(True)
 
 def test_stuck_key_fix():
     """
@@ -60,7 +60,7 @@ def test_stuck_key_fix():
     print("--> Script travado. A tecla 'Ctrl' deve estar 'presa' no sistema.")
     
     # Verificação inicial (opcional, mas bom para confirmar o problema)
-    stuck_before = keyboard.get_stuck_keys()
+    stuck_before = directkeys.get_stuck_keys()
     if 'ctrl' in stuck_before or 'left ctrl' in stuck_before:
         print(f"   [CONFIRMADO] Teclas presas detectadas: {stuck_before}")
     else:
@@ -69,12 +69,12 @@ def test_stuck_key_fix():
     input("--> Pressione Enter para executar a correção...")
 
     print("\n--> Passo 2b: Executando a função de correção 'force_reset_keyboard()'...")
-    keyboard.force_reset_keyboard()
+    directkeys.force_reset_keyboard()
     print("--> Função executada.")
     
     # Verificação de ressalva
     print("--> Verificando se ainda há teclas presas...")
-    stuck_after = keyboard.get_stuck_keys()
+    stuck_after = directkeys.get_stuck_keys()
     if stuck_after:
         print(f"   [FALHA] As seguintes teclas ainda estão presas: {stuck_after}")
         assert False, f"A função force_reset_keyboard não limpou as seguintes teclas: {stuck_after}"
@@ -96,13 +96,13 @@ if __name__ == "__main__":
         test_stuck_key_fix()
     finally:
         print("\n--- Limpeza Final ---")
-        keyboard.set_alt_gr_abstraction(True)
-        keyboard.force_reset_keyboard()
-        keyboard.reset_internal_state()
-        keyboard.unhook_all()
+        directkeys.set_alt_gr_abstraction(True)
+        directkeys.force_reset_keyboard()
+        directkeys.reset_internal_state()
+        directkeys.unhook_all()
         
         # Verificação final de ressalva
-        final_stuck_keys = keyboard.get_stuck_keys()
+        final_stuck_keys = directkeys.get_stuck_keys()
         if final_stuck_keys:
             print(f"   [AVISO FINAL] Após limpeza completa, as seguintes teclas ainda estão presas: {final_stuck_keys}")
         else:

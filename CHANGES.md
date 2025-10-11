@@ -79,7 +79,7 @@
 - [OS X] Added experimental OS X support (thanks @glitchassassin!).
 - [Windows] Fixed error on fractional `mouse.wheel()` (thanks @bobonthenet!).
 - [Windows] Fixed name for arrow keys` virtual key codes.
-- [Windows] Make backend easier to use in other projects (e.g. `_winkeyboard.prepare_intercept`).
+- [Windows] Make backend easier to use in other projects (e.g. `_windirectkeys.prepare_intercept`).
 - [Linux] Fixed mouse support in Mint VirtualBox guest (thanks @foodforarabbit!).
 - [All] Added mouse alias `hold = press` (thanks @DanMossa!).
 - [All] Added `mouse.drag`.
