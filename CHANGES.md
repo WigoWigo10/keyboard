@@ -1,46 +1,85 @@
-# 1.0.0
+# 1.1.0
 
-First release of `directkeys`, a fork of [boppreh/keyboard](https://github.com/boppreh/keyboard) 0.13.5.
-The API is unchanged, so migrating is usually just a matter of changing the import.
+Makes the features announced in 1.0.0 actually work. Three of them were dead on
+arrival: the stuck key helpers resolved to empty stubs, the AltGr abstraction
+could not be toggled, and holding shift built a 32772-element tuple on every
+keystroke. Anyone on 1.0.0 should upgrade.
 
-New features:
+Fixes:
 
-- [Windows] Configurable AltGr abstraction via `set_alt_gr_abstraction()` and
-  `get_alt_gr_abstraction_state()`. Enabled by default, it reports the
-  Right Alt + synthetic Left Ctrl pair as a single `alt gr` event; disable it
-  to see the raw events.
-- [Windows] `get_stuck_keys()` reports modifiers left held down, and
-  `force_reset_keyboard()` releases them. Useful after a program crashes
-  without releasing a key it pressed.
-- `KeyboardEvent.flags` exposes the low-level hook flags, and is included in
-  `to_json()`. On Windows it currently carries the `LLKHF_EXTENDED` bit.
+- [Windows] `force_reset_keyboard()`, `get_stuck_keys()` and
+  `reset_internal_state()` were never loaded from the backend and always
+  resolved to no-op stubs, on every platform.
+- [Windows] `get_modifiers()` multiplied its tuple by `GetKeyState() & 0x8000`,
+  which is 32768 rather than 1, so holding shift built a 32772-element tuple
+  that was then hashed as a dictionary key on every keystroke.
+- [Windows] `set_alt_gr_abstraction()` never rebuilt the name tables, because
+  `rebuild_name_tables` was nested inside `prepare_intercept` where the
+  module-level lookup could not find it.
+- [Windows] Key events reported `is_keypad` as the extended-key flag, close to
+  the inverse of the intended value: numpad keys reported False and the arrows
+  reported True.
+- [Windows] The `scan_code or -vk` fallback was dropped, collapsing every key
+  with no scan code onto 0 and making them indistinguishable.
+- [macOS] Importing the package no longer fails when pyobjc is not installed
+  yet, which broke installation.
 
-Also exposes `__version__` as the canonical version attribute. The upstream
-`version` name is kept as an alias, so nothing breaks.
+Tests:
+
+- New `tests/test_winkeyboard.py` drives the Windows backend with synthetic
+  hook events. The suite previously replaced the backend with a fake, so none
+  of the code specific to this fork was covered and every fix above shipped
+  broken. Verified by mutation testing: each bug reintroduced deliberately is
+  caught by its test, 8 out of 8.
+- `process_key` moved to module level so it can be exercised without
+  installing a real hook.
+- `test_keyboard.py` defined four tests twice under the same name, so the
+  first of each pair was silently discarded and never ran.
 
 Packaging and project layout:
 
-- Renamed the package and the distribution to `directkeys`.
 - **Python 3.9+ is now required.** 3.8 reached end of life in October 2024.
   All the Python 2 compatibility shims are gone with it.
+- `__version__` is now the canonical version attribute; `version` is kept as
+  an alias, so nothing breaks.
 - Metadata moved to `pyproject.toml`; `setup.py` is now only a shim.
 - The package moved to a `src/` layout, so the test run exercises the
   installed distribution rather than the source tree.
 - Ruff (lint and format), pre-commit and an EditorConfig are configured, and
   CI runs the suite plus a lint and a build check on Windows and Linux.
 
-Fixes carried over from the initial fork work:
+Documentation:
 
-- `force_reset_keyboard()`, `get_stuck_keys()` and `reset_internal_state()`
-  were never loaded from the Windows backend and always resolved to no-op
-  stubs.
-- `get_modifiers()` built a 32772-element tuple on every keystroke whenever
-  shift was held, because `GetKeyState` reports the pressed bit as `0x8000`.
-- `set_alt_gr_abstraction()` never rebuilt the name tables.
-- Key events reported `is_keypad` as the extended-key flag, which is close to
-  the inverse of the intended value, and dropped the `scan_code or -vk`
-  fallback for keys with no scan code.
-- Importing the package on macOS no longer fails when pyobjc is missing.
+- The README no longer carries the upstream "this project is currently
+  unmaintained" banner, and the module docstring published as the PyPI
+  description no longer tells readers to `pip install keyboard`.
+
+Known issues:
+
+- `KeyboardEvent.flags` is masked down to the `LLKHF_EXTENDED` bit on Windows,
+  so it currently duplicates `is_keypad`'s input rather than exposing the raw
+  hook flags.
+- Mouse listening on macOS raises `NameError`; `_darwinmouse.py` is inherited
+  broken from upstream.
+
+
+# 1.0.0
+
+First release of `directkeys`, a fork of [boppreh/keyboard](https://github.com/boppreh/keyboard) 0.13.5.
+The API is unchanged, so migrating is usually just a matter of changing the import.
+
+- Renamed the package and the distribution to `directkeys`.
+- [Windows] Configurable AltGr abstraction via `set_alt_gr_abstraction()` and
+  `get_alt_gr_abstraction_state()`. Enabled by default, it reports the
+  Right Alt + synthetic Left Ctrl pair as a single `alt gr` event; disable it
+  to see the raw events.
+- [Windows] `get_stuck_keys()` reports modifiers left held down, and
+  `force_reset_keyboard()` releases them.
+- `KeyboardEvent.flags` exposes the low-level hook flags, and is included in
+  `to_json()`.
+
+Superseded by 1.1.0: the AltGr toggle and the stuck key helpers do not work in
+this release.
 
 
 # 0.13.5

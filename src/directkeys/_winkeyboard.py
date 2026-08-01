@@ -554,6 +554,95 @@ keypad_keys = [
 altgr_is_pressed = False
 
 
+def process_key(callback, event_type, vk, scan_code, is_extended, flags):
+    """
+    Turns a raw hook event into a KeyboardEvent and hands it to `callback`.
+
+    Reads the AltGr abstraction setting from the main module on every call, so
+    it can be toggled at runtime. Returns True when the event should be passed
+    on to the next program, False to block it.
+
+    Kept at module level, rather than nested in `prepare_intercept`, so it can
+    be driven with synthetic events by the tests without installing a hook.
+    """
+    # Imported locally to break the import cycle and to always read the
+    # current value of the setting.
+    import directkeys
+
+    global altgr_is_pressed
+
+    # With the abstraction OFF, drop the synthetic Ctrl entirely.
+    if not directkeys._ABSTRACT_ALT_GR and scan_code == 541:
+        return True  # Suppress the event.
+
+    # With the abstraction ON, merge the pair into a single 'alt gr' event.
+    if directkeys._ABSTRACT_ALT_GR:
+        global _altgr_right_alt_scan_code, _altgr_right_alt_flags
+        if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
+            if scan_code == 541:  # The synthetic Ctrl.
+                altgr_is_pressed = True
+                event = KeyboardEvent(
+                    "down",
+                    _altgr_right_alt_scan_code,
+                    name="alt gr",
+                    is_keypad=False,
+                    flags=_altgr_right_alt_flags,
+                )
+                callback(event)
+                _altgr_right_alt_scan_code = None
+                _altgr_right_alt_flags = None
+                return True  # Suppress the synthetic Ctrl.
+            else:  # It was not, so flush the pending Right Alt.
+                event = KeyboardEvent(
+                    "down",
+                    _altgr_right_alt_scan_code,
+                    name="right alt",
+                    is_keypad=False,
+                    flags=_altgr_right_alt_flags,
+                )
+                callback(event)
+                _altgr_right_alt_scan_code = None
+                _altgr_right_alt_flags = None
+
+        if vk == 165:  # Right Alt.
+            if event_type == KEY_DOWN:  # Hold it back and wait for the Ctrl.
+                _altgr_right_alt_scan_code = scan_code
+                _altgr_right_alt_flags = flags
+                return True  # Suppress the Right Alt for now.
+            else:  # Released, so complete the 'alt gr' event.
+                altgr_is_pressed = False
+                event = KeyboardEvent("up", scan_code, name="alt gr", is_keypad=False, flags=flags)
+                callback(event)
+                return True
+
+        # Ignore the key up of the synthetic Ctrl.
+        if scan_code == 541 and event_type == KEY_UP:
+            return True
+
+    # Standard path for every other key.
+    modifiers = get_modifiers(altgr_is_pressed)
+
+    if not directkeys._ABSTRACT_ALT_GR and vk == 165:
+        name = "alt gr"
+    else:
+        name = get_name(scan_code, vk, is_extended, modifiers)
+
+    # `is_extended` is not a synonym for `is_keypad`: numpad 1-9 are not
+    # extended, while the arrows, right ctrl and insert are. The
+    # `keypad_keys` table is the only reliable source.
+    is_keypad = (scan_code, vk, is_extended) in keypad_keys
+    # Keys with no scan code (injected events, sending by virtual key) fall
+    # back to the negated vk so they stay distinguishable from each other.
+    event = KeyboardEvent(
+        event_type=event_type,
+        scan_code=scan_code or -vk,
+        name=name,
+        is_keypad=is_keypad,
+        flags=flags,
+    )
+    return callback(event)
+
+
 def prepare_intercept(callback):
     """
     Registers a Windows low level keyboard hook. The provided callback will
@@ -565,90 +654,6 @@ def prepare_intercept(callback):
     start_intercept).
     """
     _setup_name_tables()
-
-    def process_key(event_type, vk, scan_code, is_extended, flags):
-        """
-        Processes a raw hook event, reading the AltGr abstraction setting from
-        the main module so it can be toggled at runtime.
-        """
-        # Imported locally to break the import cycle and to always read the
-        # current value of the setting.
-        import directkeys
-
-        global altgr_is_pressed
-
-        # With the abstraction OFF, drop the synthetic Ctrl entirely.
-        if not directkeys._ABSTRACT_ALT_GR and scan_code == 541:
-            return True  # Suppress the event.
-
-        # With the abstraction ON, merge the pair into a single 'alt gr' event.
-        if directkeys._ABSTRACT_ALT_GR:
-            global _altgr_right_alt_scan_code, _altgr_right_alt_flags
-            if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
-                if scan_code == 541:  # The synthetic Ctrl.
-                    altgr_is_pressed = True
-                    event = KeyboardEvent(
-                        "down",
-                        _altgr_right_alt_scan_code,
-                        name="alt gr",
-                        is_keypad=False,
-                        flags=_altgr_right_alt_flags,
-                    )
-                    callback(event)
-                    _altgr_right_alt_scan_code = None
-                    _altgr_right_alt_flags = None
-                    return True  # Suppress the synthetic Ctrl.
-                else:  # It was not, so flush the pending Right Alt.
-                    event = KeyboardEvent(
-                        "down",
-                        _altgr_right_alt_scan_code,
-                        name="right alt",
-                        is_keypad=False,
-                        flags=_altgr_right_alt_flags,
-                    )
-                    callback(event)
-                    _altgr_right_alt_scan_code = None
-                    _altgr_right_alt_flags = None
-
-            if vk == 165:  # Right Alt.
-                if event_type == KEY_DOWN:  # Hold it back and wait for the Ctrl.
-                    _altgr_right_alt_scan_code = scan_code
-                    _altgr_right_alt_flags = flags
-                    return True  # Suppress the Right Alt for now.
-                else:  # Released, so complete the 'alt gr' event.
-                    altgr_is_pressed = False
-                    event = KeyboardEvent(
-                        "up", scan_code, name="alt gr", is_keypad=False, flags=flags
-                    )
-                    callback(event)
-                    return True
-
-            # Ignore the key up of the synthetic Ctrl.
-            if scan_code == 541 and event_type == KEY_UP:
-                return True
-
-        # Standard path for every other key.
-        modifiers = get_modifiers(altgr_is_pressed)
-
-        if not directkeys._ABSTRACT_ALT_GR and vk == 165:
-            name = "alt gr"
-        else:
-            name = get_name(scan_code, vk, is_extended, modifiers)
-
-        # `is_extended` is not a synonym for `is_keypad`: numpad 1-9 are not
-        # extended, while the arrows, right ctrl and insert are. The
-        # `keypad_keys` table is the only reliable source.
-        is_keypad = (scan_code, vk, is_extended) in keypad_keys
-        # Keys with no scan code (injected events, sending by virtual key) fall
-        # back to the negated vk so they stay distinguishable from each other.
-        event = KeyboardEvent(
-            event_type=event_type,
-            scan_code=scan_code or -vk,
-            name=name,
-            is_keypad=is_keypad,
-            flags=flags,
-        )
-        return callback(event)
 
     def low_level_keyboard_handler(nCode, wParam, lParam):
         try:
@@ -665,7 +670,7 @@ def prepare_intercept(callback):
                 scan_code = lParam.contents.scan_code
 
                 should_continue = process_key(
-                    event_type, vk, scan_code, is_extended, processed_flags
+                    callback, event_type, vk, scan_code, is_extended, processed_flags
                 )
 
                 if not should_continue:

@@ -17,6 +17,11 @@ jobs:
           python-version: '3.13'
 
       - uses: astral-sh/ruff-action@v3
+        with:
+          # Pinned to match .pre-commit-config.yaml. Without this the action
+          # installs its own latest Ruff, whose formatter can disagree with the
+          # one contributors run locally, failing CI on correctly formatted code.
+          version: 0.16.1
 
       - name: Lint
         run: ruff check --output-format=github .
