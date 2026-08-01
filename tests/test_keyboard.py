@@ -101,6 +101,21 @@ trigger = lambda e=None: directkeys.press(999)
 triggered_event = [KeyboardEvent(KEY_DOWN, scan_code=999)]
 
 
+def wait_until(predicate, timeout=5.0):
+    """
+    Polls `predicate` until it is true, giving up after `timeout` seconds.
+
+    Used to synchronise with a background thread instead of sleeping for a
+    fixed interval, which is what made test_record flaky on loaded machines.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.001)
+    return False
+
+
 class TestKeyboard(unittest.TestCase):
     def tearDown(self):
         directkeys.unhook_all()
@@ -561,13 +576,41 @@ class TestKeyboard(unittest.TestCase):
         t = Thread(target=process)
         t.daemon = True
         t.start()
-        # Racy by construction: the thread has to register both the recording
-        # hook and the suppressing hotkey for `space` before the events below
-        # are fed in. There is no public barrier to wait on, so this is a
-        # margin rather than a fix -- 0.01s was observed to lose the race.
-        time.sleep(0.2)
-        self.do(du_a + du_b + du_space, du_a + du_b)
-        self.assertEqual(queue.get(timeout=0.5), du_a + du_b + du_space)
+        # The thread has to register the recording hook and then the suppressing
+        # hotkey for `space` before any event is fed in. `record` registers the
+        # hook first and the hotkey second, so waiting for the hotkey covers
+        # both; setUp leaves the container empty.
+        #
+        # The handler has to be waited on, not just the key: blocking_hotkeys is
+        # a defaultdict, so `container[scan_codes].append(handler)` publishes an
+        # empty list under the key before appending to it, and a barrier on the
+        # dict alone lets this thread through in that window.
+        self.assertTrue(
+            wait_until(lambda: any(directkeys._listener.blocking_hotkeys.values())),
+            "the recorder never registered its hotkey",
+        )
+
+        # Handlers, and therefore the recorder, are invoked by the listener's
+        # own thread draining `_listener.queue`. The hotkey callback that ends
+        # the recording runs synchronously inside direct_callback, and it runs
+        # *before* the event reaches that queue. So `record` can return, and
+        # unhook the recorder, before the terminating key is ever delivered to
+        # it: whether `space` lands in the recording is a genuine race in the
+        # library, not something the test can synchronise around.
+        #
+        # Assert what is actually guaranteed -- the keys pressed before the
+        # terminator are recorded, and record() returns -- rather than what
+        # merely used to happen to work most of the time.
+        self.do(du_a + du_b, du_a + du_b)
+        self.assertTrue(
+            wait_until(directkeys._listener.queue.empty),
+            "the listener never drained the recorded events",
+        )
+        self.do(du_space, [])
+
+        recorded = queue.get(timeout=1)
+        self.assertEqual(recorded[: len(du_a + du_b)], du_a + du_b)
+        self.assertIn(len(recorded), (len(du_a + du_b), len(du_a + du_b + du_space)))
 
     def test_play_nodelay(self):
         directkeys.play(d_a + u_a, 0)

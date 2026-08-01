@@ -64,9 +64,7 @@ class Collector:
 
 
 def feed(collector, event_type, vk, scan_code, is_extended=0, flags=0):
-    return _winkeyboard.process_key(
-        collector, event_type, vk, scan_code, is_extended, flags
-    )
+    return _winkeyboard.process_key(collector, event_type, vk, scan_code, is_extended, flags)
 
 
 # --------------------------------------------------------------------------
@@ -101,9 +99,7 @@ def test_get_stuck_keys_returns_known_modifier_names():
 
 def test_get_modifiers_is_bounded_when_shift_is_held(monkeypatch):
     """Regression: GetKeyState reports 0x8000, which built a 32772-item tuple."""
-    monkeypatch.setattr(
-        _winkeyboard.user32, "GetKeyState", lambda vk: 0x8000 if vk == 0x10 else 1
-    )
+    monkeypatch.setattr(_winkeyboard.user32, "GetKeyState", lambda vk: 0x8000 if vk == 0x10 else 1)
     modifiers = _winkeyboard.get_modifiers(altgr_is_pressed=True)
     assert modifiers == ("shift", "alt gr", "num lock", "caps lock", "scroll lock")
 
