@@ -238,7 +238,12 @@ if _platform.system() == 'Windows':
 elif _platform.system() == 'Linux':
     from . import _nixkeyboard as _os_keyboard
 elif _platform.system() == 'Darwin':
-    from . import _darwinkeyboard as _os_keyboard
+    try:
+        from . import _darwinkeyboard as _os_keyboard
+    except ImportError:
+        # Pode acontecer durante a instalação, quando o setup.py importa este
+        # pacote para ler a versão antes de o pyobjc estar disponível.
+        _os_keyboard = None
 else:
     raise OSError("Unsupported platform '{}'".format(_platform.system()))
 
@@ -264,29 +269,31 @@ def get_alt_gr_abstraction_state():
     """ Retorna o estado atual da abstração do AltGr (True se habilitada). """
     return _ABSTRACT_ALT_GR
 
-# Importa as demais funções do backend.
-try:
-    from ._os_keyboard import (
-        force_reset_keyboard,
-        get_stuck_keys,
-        _reset_internal_state as reset_internal_state
-    )
-except ImportError:
-    def force_reset_keyboard():
-        """
-        Função de fallback para SOs não-Windows. Não faz nada.
-        """
-        pass
-    def get_stuck_keys():
-        """
-        Função de fallback para SOs não-Windows. Retorna uma lista vazia.
-        """
-        return []
-    def reset_internal_state():
-        """
-        Função de fallback para SOs não-Windows. Não faz nada.
-        """
-        pass
+# Importa as demais funções do backend. `_os_keyboard` é um alias para o módulo
+# já importado acima, portanto a busca precisa ser feita por atributo: um
+# `from ._os_keyboard import ...` procuraria por um submódulo inexistente e
+# cairia sempre nos fallbacks, mesmo no Windows.
+def _fallback_force_reset_keyboard():
+    """
+    Função de fallback para SOs sem suporte. Não faz nada.
+    """
+    pass
+
+def _fallback_get_stuck_keys():
+    """
+    Função de fallback para SOs sem suporte. Retorna uma lista vazia.
+    """
+    return []
+
+def _fallback_reset_internal_state():
+    """
+    Função de fallback para SOs sem suporte. Não faz nada.
+    """
+    pass
+
+force_reset_keyboard = getattr(_os_keyboard, 'force_reset_keyboard', _fallback_force_reset_keyboard)
+get_stuck_keys = getattr(_os_keyboard, 'get_stuck_keys', _fallback_get_stuck_keys)
+reset_internal_state = getattr(_os_keyboard, '_reset_internal_state', _fallback_reset_internal_state)
 
 _modifier_scan_codes = set()
 def is_modifier(key):

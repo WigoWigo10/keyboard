@@ -452,12 +452,14 @@ def get_modifiers(altgr_is_pressed):
     """
     Retorna uma tupla com os nomes dos modificadores atualmente ativos.
     """
+    # GetKeyState devolve 0x8000 (e não 1) no bit de "pressionado", portanto a
+    # conversão para bool é obrigatória antes de repetir a tupla.
     return (
-        ('shift',) * (user32.GetKeyState(0x10) & 0x8000) +
-        ('alt gr',) * altgr_is_pressed +
-        ('num lock',) * (user32.GetKeyState(0x90) & 1) +
-        ('caps lock',) * (user32.GetKeyState(0x14) & 1) +
-        ('scroll lock',) * (user32.GetKeyState(0x91) & 1)
+        ('shift',) * bool(user32.GetKeyState(0x10) & 0x8000) +
+        ('alt gr',) * bool(altgr_is_pressed) +
+        ('num lock',) * bool(user32.GetKeyState(0x90) & 1) +
+        ('caps lock',) * bool(user32.GetKeyState(0x14) & 1) +
+        ('scroll lock',) * bool(user32.GetKeyState(0x91) & 1)
     )
 
 def get_name(scan_code, vk, is_extended, modifiers):
@@ -552,14 +554,6 @@ def prepare_intercept(callback):
     start_intercept).
     """
     _setup_name_tables()
-    
-    def rebuild_name_tables():
-        """
-        Força a limpeza e reconstrução das tabelas de nomes.
-        Chamado pelo __init__.py quando a configuração de abstração muda.
-        """
-        _clear_name_tables()
-        _setup_name_tables()
 
     # Adicionado 'flags' como parâmetro da função 'process_key'.
     # A função 'process_key' agora irá verificar o switch.
@@ -582,13 +576,13 @@ def prepare_intercept(callback):
             if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
                 if scan_code == 541: # É o Ctrl sintético
                     altgr_is_pressed = True
-                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='alt gr', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='alt gr', is_keypad=False, flags=_altgr_right_alt_flags)
                     callback(event)
                     _altgr_right_alt_scan_code = None
                     _altgr_right_alt_flags = None
                     return True # Suprime o Ctrl sintético
                 else: # Não era, libera o Right Alt que estava pendente.
-                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='right alt', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='right alt', is_keypad=False, flags=_altgr_right_alt_flags)
                     callback(event)
                     _altgr_right_alt_scan_code = None
                     _altgr_right_alt_flags = None
@@ -600,7 +594,7 @@ def prepare_intercept(callback):
                     return True # Suprime o Right Alt temporariamente
                 else: # Solto, conclui o evento 'alt gr'.
                     altgr_is_pressed = False
-                    event = KeyboardEvent('up', scan_code, name='alt gr', is_keypad=is_extended, flags=flags)
+                    event = KeyboardEvent('up', scan_code, name='alt gr', is_keypad=False, flags=flags)
                     callback(event)
                     return True
             
@@ -619,7 +613,13 @@ def prepare_intercept(callback):
         else:
             name = get_name(scan_code, vk, is_extended, modifiers)
 
-        event = KeyboardEvent(event_type=event_type, scan_code=scan_code, name=name, is_keypad=is_extended, flags=flags)
+        # `is_extended` não é sinônimo de `is_keypad`: o numpad 1-9 não é
+        # extended, enquanto setas, ctrl direito e insert são. A tabela
+        # `keypad_keys` é a única fonte confiável.
+        is_keypad = (scan_code, vk, is_extended) in keypad_keys
+        # Teclas sem scan code (eventos injetados, envio por virtual key) caem
+        # no negativo do vk para continuarem distinguíveis entre si.
+        event = KeyboardEvent(event_type=event_type, scan_code=scan_code or -vk, name=name, is_keypad=is_keypad, flags=flags)
         return callback(event)
 
     def low_level_keyboard_handler(nCode, wParam, lParam):
@@ -660,6 +660,14 @@ def _clear_name_tables():
         to_name.clear()
         from_name.clear()
         scan_code_to_vk.clear()
+
+def rebuild_name_tables():
+    """
+    Força a limpeza e reconstrução das tabelas de nomes.
+    Chamado pelo __init__.py quando a configuração de abstração muda.
+    """
+    _clear_name_tables()
+    _setup_name_tables()
 
 def listen(callback):
     prepare_intercept(callback)
