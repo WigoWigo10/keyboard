@@ -576,13 +576,13 @@ def prepare_intercept(callback):
             if _altgr_right_alt_scan_code is not None and event_type == KEY_DOWN:
                 if scan_code == 541: # É o Ctrl sintético
                     altgr_is_pressed = True
-                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='alt gr', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='alt gr', is_keypad=False, flags=_altgr_right_alt_flags)
                     callback(event)
                     _altgr_right_alt_scan_code = None
                     _altgr_right_alt_flags = None
                     return True # Suprime o Ctrl sintético
                 else: # Não era, libera o Right Alt que estava pendente.
-                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='right alt', is_keypad=is_extended, flags=_altgr_right_alt_flags)
+                    event = KeyboardEvent('down', _altgr_right_alt_scan_code, name='right alt', is_keypad=False, flags=_altgr_right_alt_flags)
                     callback(event)
                     _altgr_right_alt_scan_code = None
                     _altgr_right_alt_flags = None
@@ -594,7 +594,7 @@ def prepare_intercept(callback):
                     return True # Suprime o Right Alt temporariamente
                 else: # Solto, conclui o evento 'alt gr'.
                     altgr_is_pressed = False
-                    event = KeyboardEvent('up', scan_code, name='alt gr', is_keypad=is_extended, flags=flags)
+                    event = KeyboardEvent('up', scan_code, name='alt gr', is_keypad=False, flags=flags)
                     callback(event)
                     return True
             
@@ -613,7 +613,13 @@ def prepare_intercept(callback):
         else:
             name = get_name(scan_code, vk, is_extended, modifiers)
 
-        event = KeyboardEvent(event_type=event_type, scan_code=scan_code, name=name, is_keypad=is_extended, flags=flags)
+        # `is_extended` não é sinônimo de `is_keypad`: o numpad 1-9 não é
+        # extended, enquanto setas, ctrl direito e insert são. A tabela
+        # `keypad_keys` é a única fonte confiável.
+        is_keypad = (scan_code, vk, is_extended) in keypad_keys
+        # Teclas sem scan code (eventos injetados, envio por virtual key) caem
+        # no negativo do vk para continuarem distinguíveis entre si.
+        event = KeyboardEvent(event_type=event_type, scan_code=scan_code or -vk, name=name, is_keypad=is_keypad, flags=flags)
         return callback(event)
 
     def low_level_keyboard_handler(nCode, wParam, lParam):
