@@ -70,7 +70,16 @@ directory = "coverage_html_report"
 [tool.ruff]
 target-version = "py39"
 line-length = 100
-extend-exclude = ["tests/manual"]
+# README.md is generated from the __init__ docstring by the `build` target, so
+# letting Ruff reformat its code blocks would put the two permanently out of
+# sync, each rewriting the other on the next run.
+extend-exclude = ["tests/manual", "*.md"]
+
+[tool.ruff.format]
+# Deliberately left off: the __init__ docstring is published verbatim as the
+# PyPI description and regenerated into README.md, so the formatter must not
+# rewrite the example code inside it.
+docstring-code-format = false
 
 [tool.ruff.lint]
 select = [

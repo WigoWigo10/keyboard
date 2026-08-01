@@ -6,6 +6,7 @@ try:
 except ImportError:
     from Queue import Queue
 
+
 class GenericListener:
     lock = Lock()
 
@@ -44,7 +45,7 @@ class GenericListener:
             self.lock.release()
 
     def pre_process_event(self, event):
-        raise NotImplementedError('This method should be implemented in the child class.')
+        raise NotImplementedError("This method should be implemented in the child class.")
 
     def process(self):
         """
@@ -66,6 +67,6 @@ class GenericListener:
         self.handlers.append(handler)
 
     def remove_handler(self, handler):
-        """ Removes a previously added event handler. """
+        """Removes a previously added event handler."""
         while handler in self.handlers:
             self.handlers.remove(handler)

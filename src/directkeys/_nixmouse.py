@@ -9,10 +9,13 @@ from ._nixcommon import EV_KEY, EV_MSC, EV_REL, EV_SYN, aggregate_devices
 display = None
 window = None
 x11 = None
+
+
 def build_display():
     global display, window, x11
-    if display and window and x11: return
-    x11 = ctypes.cdll.LoadLibrary(ctypes.util.find_library('X11'))
+    if display and window and x11:
+        return
+    x11 = ctypes.cdll.LoadLibrary(ctypes.util.find_library("X11"))
     # Required because we will have multiple threads calling x11,
     # such as the listener thread and then main using "move_to".
     x11.XInitThreads()
@@ -21,20 +24,31 @@ def build_display():
     # http://stackoverflow.com/questions/35137007/get-mouse-position-on-linux-pure-python
     window = x11.XDefaultRootWindow(display)
 
+
 def get_position():
     build_display()
     root_id, child_id = c_uint32(), c_uint32()
     root_x, root_y, win_x, win_y = c_int(), c_int(), c_int(), c_int()
     mask = c_uint()
-    ret = x11.XQueryPointer(display, c_uint32(window), byref(root_id), byref(child_id),
-                            byref(root_x), byref(root_y),
-                            byref(win_x), byref(win_y), byref(mask))
+    ret = x11.XQueryPointer(
+        display,
+        c_uint32(window),
+        byref(root_id),
+        byref(child_id),
+        byref(root_x),
+        byref(root_y),
+        byref(win_x),
+        byref(win_y),
+        byref(mask),
+    )
     return root_x.value, root_y.value
+
 
 def move_to(x, y):
     build_display()
     x11.XWarpPointer(display, None, window, 0, 0, 0, 0, x, y)
     x11.XFlush(display)
+
 
 REL_X = 0x00
 REL_Y = 0x01
@@ -62,11 +76,17 @@ button_by_code = {
 code_by_button = {button: code for code, button in button_by_code.items()}
 
 device = None
+
+
 def build_device():
     global device
-    if device: return
-    device = aggregate_devices('mouse')
+    if device:
+        return
+    device = aggregate_devices("mouse")
+
+
 init = build_device
+
 
 def listen(queue):
     build_device()
@@ -80,9 +100,9 @@ def listen(queue):
         arg = None
 
         if type == EV_KEY:
-            event = ButtonEvent(DOWN if value else UP, button_by_code.get(code, '?'), time)
+            event = ButtonEvent(DOWN if value else UP, button_by_code.get(code, "?"), time)
         elif type == EV_REL:
-            value, = struct.unpack('i', struct.pack('I', value))
+            (value,) = struct.unpack("i", struct.pack("I", value))
 
             if code == REL_WHEEL:
                 event = WheelEvent(value, time)
@@ -96,13 +116,16 @@ def listen(queue):
 
         queue.put(event)
 
+
 def press(button=LEFT):
     build_device()
     device.write_event(EV_KEY, code_by_button[button], 0x01)
 
+
 def release(button=LEFT):
     build_device()
     device.write_event(EV_KEY, code_by_button[button], 0x00)
+
 
 def move_relative(x, y):
     build_device()
@@ -114,6 +137,7 @@ def move_relative(x, y):
     device.write_event(EV_REL, REL_X, x)
     device.write_event(EV_REL, REL_Y, y)
 
+
 def wheel(delta=1):
     build_device()
     if delta < 0:
@@ -121,6 +145,6 @@ def wheel(delta=1):
     device.write_event(EV_REL, REL_WHEEL, delta)
 
 
-if __name__ == '__main__':
-    #listen(print)
+if __name__ == "__main__":
+    # listen(print)
     move_to(100, 200)

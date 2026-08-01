@@ -38,19 +38,20 @@ class FakeOsMouse:
         return self.position
 
     def move_to(self, x, y):
-        self.append(('move', (x, y)))
+        self.append(("move", (x, y)))
         self.position = (x, y)
 
     def wheel(self, delta):
-        self.append(('wheel', delta))
+        self.append(("wheel", delta))
 
     def move_relative(self, x, y):
         self.position = (self.position[0] + x, self.position[1] + y)
 
+
 class TestMouse(unittest.TestCase):
     @staticmethod
     def setUpClass():
-        mouse._os_mouse= FakeOsMouse()
+        mouse._os_mouse = FakeOsMouse()
         mouse._listener.start_if_necessary()
         assert mouse._os_mouse.listening
 
@@ -159,8 +160,10 @@ class TestMouse(unittest.TestCase):
 
     def triggers(self, fn, events, **kwargs):
         self.triggered = False
+
         def callback():
             self.triggered = True
+
         handler = fn(callback, **kwargs)
 
         for event_type, arg in events:
@@ -170,7 +173,7 @@ class TestMouse(unittest.TestCase):
                 self.release(arg)
             elif event_type == DOUBLE:
                 self.double_click(arg)
-            elif event_type == 'WHEEL':
+            elif event_type == "WHEEL":
                 self.wheel()
 
         mouse._listener.remove_handler(handler)
@@ -181,7 +184,7 @@ class TestMouse(unittest.TestCase):
         self.assertTrue(self.triggers(mouse.on_button, [(DOWN, RIGHT)]))
         self.assertTrue(self.triggers(mouse.on_button, [(DOWN, X)]))
 
-        self.assertFalse(self.triggers(mouse.on_button, [('WHEEL', '')]))
+        self.assertFalse(self.triggers(mouse.on_button, [("WHEEL", "")]))
 
         self.assertFalse(self.triggers(mouse.on_button, [(DOWN, X)], buttons=MIDDLE))
         self.assertTrue(self.triggers(mouse.on_button, [(DOWN, MIDDLE)], buttons=MIDDLE))
@@ -189,9 +192,15 @@ class TestMouse(unittest.TestCase):
         self.assertFalse(self.triggers(mouse.on_button, [(DOWN, MIDDLE)], buttons=MIDDLE, types=UP))
         self.assertTrue(self.triggers(mouse.on_button, [(UP, MIDDLE)], buttons=MIDDLE, types=UP))
 
-        self.assertTrue(self.triggers(mouse.on_button, [(UP, MIDDLE)], buttons=[MIDDLE, LEFT], types=[UP, DOWN]))
-        self.assertTrue(self.triggers(mouse.on_button, [(DOWN, LEFT)], buttons=[MIDDLE, LEFT], types=[UP, DOWN]))
-        self.assertFalse(self.triggers(mouse.on_button, [(UP, X)], buttons=[MIDDLE, LEFT], types=[UP, DOWN]))
+        self.assertTrue(
+            self.triggers(mouse.on_button, [(UP, MIDDLE)], buttons=[MIDDLE, LEFT], types=[UP, DOWN])
+        )
+        self.assertTrue(
+            self.triggers(mouse.on_button, [(DOWN, LEFT)], buttons=[MIDDLE, LEFT], types=[UP, DOWN])
+        )
+        self.assertFalse(
+            self.triggers(mouse.on_button, [(UP, X)], buttons=[MIDDLE, LEFT], types=[UP, DOWN])
+        )
 
     def test_ons(self):
         self.assertTrue(self.triggers(mouse.on_click, [(UP, LEFT)]))
@@ -209,22 +218,28 @@ class TestMouse(unittest.TestCase):
     def test_wait(self):
         # If this fails it blocks. Unfortunately, but I see no other way of testing.
         from threading import Lock, Thread
+
         lock = Lock()
         lock.acquire()
+
         def t():
             mouse.wait()
             lock.release()
+
         Thread(target=t).start()
         self.press()
         lock.acquire()
 
     def test_record_play(self):
         from threading import Lock, Thread
+
         lock = Lock()
         lock.acquire()
+
         def t():
             self.recorded = mouse.record(RIGHT)
             lock.release()
+
         Thread(target=t).start()
         self.click()
         self.wheel(5)
@@ -244,8 +259,8 @@ class TestMouse(unittest.TestCase):
         self.assertEqual(len(events), 5)
         self.assertEqual(events[0], (DOWN, LEFT))
         self.assertEqual(events[1], (UP, LEFT))
-        self.assertEqual(events[2], ('wheel', 5))
-        self.assertEqual(events[3], ('move', (100, 50)))
+        self.assertEqual(events[2], ("wheel", 5))
+        self.assertEqual(events[3], ("move", (100, 50)))
         self.assertEqual(events[4], (DOWN, RIGHT))
 
         mouse.play(self.recorded)
@@ -253,22 +268,22 @@ class TestMouse(unittest.TestCase):
         self.assertEqual(len(events), 5)
         self.assertEqual(events[0], (DOWN, LEFT))
         self.assertEqual(events[1], (UP, LEFT))
-        self.assertEqual(events[2], ('wheel', 5))
-        self.assertEqual(events[3], ('move', (100, 50)))
+        self.assertEqual(events[2], ("wheel", 5))
+        self.assertEqual(events[3], ("move", (100, 50)))
         self.assertEqual(events[4], (DOWN, RIGHT))
 
         mouse.play(self.recorded, include_clicks=False)
         events = self.flush_events()
         self.assertEqual(len(events), 2)
-        self.assertEqual(events[0], ('wheel', 5))
-        self.assertEqual(events[1], ('move', (100, 50)))
+        self.assertEqual(events[0], ("wheel", 5))
+        self.assertEqual(events[1], ("move", (100, 50)))
 
         mouse.play(self.recorded, include_moves=False)
         events = self.flush_events()
         self.assertEqual(len(events), 4)
         self.assertEqual(events[0], (DOWN, LEFT))
         self.assertEqual(events[1], (UP, LEFT))
-        self.assertEqual(events[2], ('wheel', 5))
+        self.assertEqual(events[2], ("wheel", 5))
         self.assertEqual(events[3], (DOWN, RIGHT))
 
         mouse.play(self.recorded, include_wheel=False)
@@ -276,8 +291,9 @@ class TestMouse(unittest.TestCase):
         self.assertEqual(len(events), 4)
         self.assertEqual(events[0], (DOWN, LEFT))
         self.assertEqual(events[1], (UP, LEFT))
-        self.assertEqual(events[2], ('move', (100, 50)))
+        self.assertEqual(events[2], ("move", (100, 50)))
         self.assertEqual(events[3], (DOWN, RIGHT))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
