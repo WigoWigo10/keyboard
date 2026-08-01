@@ -23,7 +23,7 @@ Take full control of your keyboard with this small Python library. Hook global e
 ### New in this fork
 
 - **Configurable AltGr abstraction** ([set_alt_gr_abstraction](#directkeys.set_alt_gr_abstraction)): report AltGr as a single event, or expose the raw Windows sequence.
-- **Raw event flags**: `KeyboardEvent.flags` carries the low-level hook flags.
+- **Event flags**: `KeyboardEvent.flags` carries the low-level hook flags. On Windows it is currently masked down to the `LLKHF_EXTENDED` bit.
 - **Stuck key recovery** ([get_stuck_keys](#directkeys.get_stuck_keys) and [force_reset_keyboard](#directkeys.force_reset_keyboard)): detect and release modifiers left pressed by a crashed program.
 
 ## Usage

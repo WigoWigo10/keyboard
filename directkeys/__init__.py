@@ -25,7 +25,7 @@ Take full control of your keyboard with this small Python library. Hook global e
 ### New in this fork
 
 - **Configurable AltGr abstraction** ([set_alt_gr_abstraction](#directkeys.set_alt_gr_abstraction)): report AltGr as a single event, or expose the raw Windows sequence.
-- **Raw event flags**: `KeyboardEvent.flags` carries the low-level hook flags.
+- **Event flags**: `KeyboardEvent.flags` carries the low-level hook flags. On Windows it is currently masked down to the `LLKHF_EXTENDED` bit.
 - **Stuck key recovery** ([get_stuck_keys](#directkeys.get_stuck_keys) and [force_reset_keyboard](#directkeys.force_reset_keyboard)): detect and release modifiers left pressed by a crashed program.
 
 ## Usage
@@ -213,7 +213,7 @@ from __future__ import print_function as _print_function
 
 version = '1.0.0'
 
-# Variável de estado para a abstração do AltGr, gerenciada centralmente.
+# Centrally managed state for the AltGr abstraction, read by the backend.
 _ABSTRACT_ALT_GR = True
 
 import re as _re
@@ -244,12 +244,12 @@ class _Event(_UninterruptibleEvent):
             if _UninterruptibleEvent.wait(self, 0.5):
                 break
 
-# Carrega as dependências base antes do backend para evitar import circular.
+# Load the base dependencies before the backend, to avoid a circular import.
 from ._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
 from ._generic import GenericListener as _GenericListener
 from ._canonical_names import all_modifiers, sided_modifiers, normalize_name
 
-# Lógica de importação do backend específico do SO.
+# Import the platform specific backend.
 import platform as _platform
 if _platform.system() == 'Windows':
     from . import _winkeyboard as _os_keyboard
@@ -259,53 +259,56 @@ elif _platform.system() == 'Darwin':
     try:
         from . import _darwinkeyboard as _os_keyboard
     except ImportError:
-        # Pode acontecer durante a instalação, quando o setup.py importa este
-        # pacote para ler a versão antes de o pyobjc estar disponível.
+        # Can happen during installation, when setup.py imports this package to
+        # read the version before pyobjc is available.
         _os_keyboard = None
 else:
     raise OSError("Unsupported platform '{}'".format(_platform.system()))
 
-# Funções públicas para controlar as novas funcionalidades.
 def set_alt_gr_abstraction(enabled):
     """
-    Habilita ou desabilita a abstração da tecla AltGr no backend do Windows.
+    Enables or disables the AltGr abstraction in the Windows backend.
 
-    Por padrão, a biblioteca trata a sequência de eventos do Windows para 'AltGr'
-    (Right Alt + Left Ctrl) como um único evento 'alt gr'. Desabilitar esta
-    opção fará com que os eventos brutos sejam reportados.
+    By default the library reports the Windows event sequence for AltGr
+    (Right Alt + a synthetic Left Ctrl) as a single `alt gr` event. Disabling
+    this makes the raw events visible instead, which is useful when you need
+    to tell a real Ctrl press apart from the one Windows synthesises.
+
+    Has no effect on other platforms.
 
     Args:
-        enabled (bool): True para habilitar a abstração (padrão), False para desabilitar.
+        enabled (bool): True to enable the abstraction (default), False to
+            report raw events.
     """
     global _ABSTRACT_ALT_GR
     _ABSTRACT_ALT_GR = bool(enabled)
-    # Notifica o backend para se reconfigurar, se necessário.
+    # Let the backend reconfigure itself, if it needs to.
     if hasattr(_os_keyboard, 'rebuild_name_tables'):
         _os_keyboard.rebuild_name_tables()
 
 def get_alt_gr_abstraction_state():
-    """ Retorna o estado atual da abstração do AltGr (True se habilitada). """
+    """ Returns True if the AltGr abstraction is currently enabled. """
     return _ABSTRACT_ALT_GR
 
-# Importa as demais funções do backend. `_os_keyboard` é um alias para o módulo
-# já importado acima, portanto a busca precisa ser feita por atributo: um
-# `from ._os_keyboard import ...` procuraria por um submódulo inexistente e
-# cairia sempre nos fallbacks, mesmo no Windows.
+# Import the remaining backend functions. `_os_keyboard` is an alias bound to
+# the module imported above, so these have to be looked up as attributes: a
+# `from ._os_keyboard import ...` would search for a submodule that does not
+# exist and always fall through to the fallbacks, even on Windows.
 def _fallback_force_reset_keyboard():
     """
-    Função de fallback para SOs sem suporte. Não faz nada.
+    Fallback for platforms without a stuck key implementation. Does nothing.
     """
     pass
 
 def _fallback_get_stuck_keys():
     """
-    Função de fallback para SOs sem suporte. Retorna uma lista vazia.
+    Fallback for platforms without a stuck key implementation. Returns [].
     """
     return []
 
 def _fallback_reset_internal_state():
     """
-    Função de fallback para SOs sem suporte. Não faz nada.
+    Fallback for platforms with no internal state to reset. Does nothing.
     """
     pass
 
