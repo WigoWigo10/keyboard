@@ -1,13 +1,9 @@
-**This project is currently unmaintained. It works for many cases, and I wish to pick it up again in the future, but you might encounter some friction and limited features using it.**
-
----
-
----
-
 directkeys
-========
+==========
 
 Take full control of your keyboard with this small Python library. Hook global events, register hotkeys, simulate key presses and much more.
+
+`directkeys` is an actively maintained fork of [boppreh/keyboard](https://github.com/boppreh/keyboard), which has been dormant since 2021. It keeps the original API so existing code only needs to change the import, and focuses on low-level control of the Windows backend: a configurable AltGr abstraction, raw event flags and recovery from stuck modifier keys.
 
 ## Features
 
@@ -15,8 +11,8 @@ Take full control of your keyboard with this small Python library. Hook global e
 - **Listen** and **send** keyboard events.
 - Works with **Windows** and **Linux** (requires sudo), with experimental **OS X** support (thanks @glitchassassin!).
 - **Pure Python**, no C modules to be compiled.
-- **Zero dependencies**. Trivial to install and deploy, just copy the files.
-- **Python 2 and 3**.
+- **Zero dependencies** on Windows and Linux. Trivial to install and deploy.
+- **Python 3.9+**.
 - Complex hotkey support (e.g. `ctrl+shift+m, ctrl+space`) with controllable timeout.
 - Includes **high level API** (e.g. [record](#directkeys.record) and [play](#directkeys.play), [add_abbreviation](#directkeys.add_abbreviation)).
 - Maps keys as they actually are in your layout, with **full internationalization support** (e.g. `Ctrl+ç`).
@@ -25,19 +21,57 @@ Take full control of your keyboard with this small Python library. Hook global e
 - Doesn't break accented dead keys (I'm looking at you, pyHook).
 - Mouse support available via project [mouse](https://github.com/boppreh/mouse) (`pip install mouse`).
 
+### New in this fork
+
+- **Configurable AltGr abstraction** ([set_alt_gr_abstraction](#directkeys.set_alt_gr_abstraction)): report AltGr as a single event, or expose the raw Windows sequence.
+- **Event flags**: `KeyboardEvent.flags` carries the low-level hook flags. On Windows it is currently masked down to the `LLKHF_EXTENDED` bit.
+- **Stuck key recovery** ([get_stuck_keys](#directkeys.get_stuck_keys) and [force_reset_keyboard](#directkeys.force_reset_keyboard)): detect and release modifiers left pressed by a crashed program.
+
 ## Usage
 
-Install the [PyPI package](https://pypi.python.org/pypi/keyboard/):
+Install the [PyPI package](https://pypi.python.org/pypi/directkeys/):
 
     pip install directkeys
 
 or clone the repository (no installation required, source files are sufficient):
 
-    git clone https://github.com/WigoWigo10/directkeys
+    git clone https://github.com/WigoWigo10/keyboard
 
-or [download and extract the zip](https://github.com/boppreh/keyboard/archive/master.zip) into your project folder.
+or [download and extract the zip](https://github.com/WigoWigo10/keyboard/archive/master.zip) into your project folder.
 
-Then check the [API docs below](https://github.com/boppreh/keyboard#api) to see what features are available.
+Then check the [API docs below](https://github.com/WigoWigo10/keyboard#api) to see what features are available.
+
+### Migrating from `keyboard`
+
+The whole API is unchanged, so in most cases only the import differs:
+
+```py
+# before
+import keyboard
+# after
+import directkeys as keyboard
+```
+
+## Development
+
+```bash
+git clone https://github.com/WigoWigo10/keyboard
+cd keyboard
+pip install -e .
+pip install pytest pre-commit ruff
+pre-commit install
+```
+
+Run the checks the way CI does:
+
+```bash
+pytest              # the automated suite
+ruff check .        # lint
+ruff format --check .
+```
+
+`tests/manual/` holds interactive scripts that drive a real keyboard, so they
+are excluded from the automated run and have to be started by hand.
 
 
 ## Example
@@ -75,7 +109,7 @@ Use as standalone module:
 
 ```bash
 # Save JSON events to a file until interrupted:
-python -m keyboard > events.txt
+python -m directkeys > events.txt
 
 cat events.txt
 # {"event_type": "down", "scan_code": 25, "name": "p", "time": 1622447562.2994788, "is_keypad": false}
@@ -83,7 +117,7 @@ cat events.txt
 # ...
 
 # Replay events
-python -m keyboard < events.txt
+python -m directkeys < events.txt
 ```
 
 ## Known limitations:
@@ -92,9 +126,9 @@ python -m keyboard < events.txt
 - Media keys on Linux may appear nameless (scan-code only) or not at all. [#20](https://github.com/boppreh/keyboard/issues/20)
 - Key suppression/blocking only available on Windows. [#22](https://github.com/boppreh/keyboard/issues/22)
 - To avoid depending on X, the Linux parts reads raw device files (`/dev/input/input*`) but this requires root.
-- Other applications, such as some games, may register hooks that swallow all key events. In this case `keyboard` will be unable to report events.
+- Other applications, such as some games, may register hooks that swallow all key events. In this case `directkeys` will be unable to report events.
 - This program makes no attempt to hide itself, so don't use it for keyloggers or online gaming bots. Be responsible.
-- SSH connections forward only the text typed, not keyboard events. Therefore if you connect to a server or Raspberry PI that is running `keyboard` via SSH, the server will not detect your key events.
+- SSH connections forward only the text typed, not keyboard events. Therefore if you connect to a server or Raspberry PI that is running `directkeys` via SSH, the server will not detect your key events.
 
 ## Common patterns and mistakes
 
@@ -183,7 +217,7 @@ while True:
 ### 'Press any key to continue'
 
 ```py
-# Don't do this! The `keyboard` module is meant for global events, even when your program is not in focus.
+# Don't do this! The `directkeys` module is meant for global events, even when your program is not in focus.
 #import directkeys
 #print('Press any key to continue...')
 #directkeys.get_event()
@@ -194,8 +228,6 @@ input('Press enter to continue...')
 # Or one of the suggestions from here
 # https://stackoverflow.com/questions/983354/how-to-make-a-script-wait-for-a-pressed-key
 ```
-
-
 
 # API
 #### Table of Contents
@@ -309,7 +341,7 @@ input('Press enter to continue...')
 
 ### KeyboardEvent.**to\_json**(self, ensure\_ascii=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/_keyboard_event.py#L34)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/_keyboard_event.py#L34)
 
 
 
@@ -341,7 +373,7 @@ input('Press enter to continue...')
 
 ## directkeys.**is\_modifier**(key)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L242)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L242)
 
 
 Returns True if `key` is a scan code or name of a modifier key.
@@ -352,7 +384,7 @@ Returns True if `key` is a scan code or name of a modifier key.
 
 ## directkeys.**key\_to\_scan\_codes**(key, error\_if\_missing=True)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L405)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L405)
 
 
 Returns a list of scan codes associated with this key (name or scan code).
@@ -363,7 +395,7 @@ Returns a list of scan codes associated with this key (name or scan code).
 
 ## directkeys.**parse\_hotkey**(hotkey)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L435)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L435)
 
 
 Parses a user-provided hotkey into nested tuples representing the
@@ -388,7 +420,7 @@ parse_hotkey("alt+shift+a, alt+b, c")
 
 ## directkeys.**send**(hotkey, do\_press=True, do\_release=True)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L468)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L468)
 
 
 Sends OS events that perform the given *hotkey* hotkey.
@@ -414,7 +446,7 @@ Note: keys are released in the opposite order they were pressed.
 
 ## directkeys.**press**(hotkey)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L501)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L501)
 
 Presses and holds down a hotkey (see [`send`](#directkeys.send)). 
 
@@ -423,7 +455,7 @@ Presses and holds down a hotkey (see [`send`](#directkeys.send)).
 
 ## directkeys.**release**(hotkey)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L505)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L505)
 
 Releases a hotkey (see [`send`](#directkeys.send)). 
 
@@ -432,7 +464,7 @@ Releases a hotkey (see [`send`](#directkeys.send)).
 
 ## directkeys.**is\_pressed**(hotkey)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L509)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L509)
 
 
 Returns True if the key is pressed.
@@ -450,7 +482,7 @@ is_pressed('ctrl+space') #-> True
 
 ## directkeys.**call\_later**(fn, args=(), delay=0.001)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L536)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L536)
 
 
 Calls the provided function in a new thread after waiting some time.
@@ -463,7 +495,7 @@ the current execution flow.
 
 ## directkeys.**hook**(callback, suppress=False, on\_remove=&lt;lambda&gt;)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L546)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L546)
 
 
 Installs a global listener on all available keyboards, invoking `callback`
@@ -486,7 +518,7 @@ Returns the given callback for easier development.
 
 ## directkeys.**on\_press**(callback, suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L577)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L577)
 
 
 Invokes `callback` for every KEY_DOWN event. For details see [`hook`](#directkeys.hook).
@@ -497,7 +529,7 @@ Invokes `callback` for every KEY_DOWN event. For details see [`hook`](#directkey
 
 ## directkeys.**on\_release**(callback, suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L583)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L583)
 
 
 Invokes `callback` for every KEY_UP event. For details see [`hook`](#directkeys.hook).
@@ -508,7 +540,7 @@ Invokes `callback` for every KEY_UP event. For details see [`hook`](#directkeys.
 
 ## directkeys.**hook\_key**(key, callback, suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L589)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L589)
 
 
 Hooks key up and key down events for a single key. Returns the event handler
@@ -524,7 +556,7 @@ affects it as well.
 
 ## directkeys.**on\_press\_key**(key, callback, suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L613)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L613)
 
 
 Invokes `callback` for KEY_DOWN event related to the given key. For details see [`hook`](#directkeys.hook).
@@ -535,7 +567,7 @@ Invokes `callback` for KEY_DOWN event related to the given key. For details see 
 
 ## directkeys.**on\_release\_key**(key, callback, suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L619)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L619)
 
 
 Invokes `callback` for KEY_UP event related to the given key. For details see [`hook`](#directkeys.hook).
@@ -546,7 +578,7 @@ Invokes `callback` for KEY_UP event related to the given key. For details see [`
 
 ## directkeys.**unhook**(remove)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L625)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L625)
 
 
 Removes a previously added hook, either by callback or by the return value
@@ -558,7 +590,7 @@ of [`hook`](#directkeys.hook).
 
 ## directkeys.**unhook\_all**()
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L633)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L633)
 
 
 Removes all keyboard hooks in use, including hotkeys, abbreviations, word
@@ -570,7 +602,7 @@ listeners, [`record`](#directkeys.record)ers and [`wait`](#directkeys.wait)s.
 
 ## directkeys.**block\_key**(key)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L645)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L645)
 
 
 Suppresses all key events of the given key, regardless of modifiers.
@@ -581,7 +613,7 @@ Suppresses all key events of the given key, regardless of modifiers.
 
 ## directkeys.**remap\_key**(src, dst)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L652)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L652)
 
 
 Whenever the key `src` is pressed or released, regardless of modifiers,
@@ -593,7 +625,7 @@ press or release the hotkey `dst` instead.
 
 ## directkeys.**parse\_hotkey\_combinations**(hotkey)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L666)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L666)
 
 
 Parses a user-provided hotkey. Differently from [`parse_hotkey`](#directkeys.parse_hotkey),
@@ -606,7 +638,7 @@ each step is a list of all possible combinations of those scan codes.
 
 ## directkeys.**add\_hotkey**(hotkey, callback, args=(), suppress=False, timeout=1, trigger\_on\_release=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L706)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L706)
 
 
 Invokes a callback every time a hotkey is pressed. The hotkey must
@@ -653,7 +685,7 @@ add_hotkey('ctrl+alt+enter, space', some_callback)
 
 ## directkeys.**remove\_hotkey**(hotkey\_or\_callback)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L852)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L852)
 
 
 Removes a previously hooked hotkey. Must be called with the value returned
@@ -665,7 +697,7 @@ by [`add_hotkey`](#directkeys.add_hotkey).
 
 ## directkeys.**unhook\_all\_hotkeys**()
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L860)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L860)
 
 
 Removes all keyboard hotkeys in use, including abbreviations, word listeners,
@@ -677,7 +709,7 @@ Removes all keyboard hotkeys in use, including abbreviations, word listeners,
 
 ## directkeys.**remap\_hotkey**(src, dst, suppress=True, trigger\_on\_release=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L871)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L871)
 
 
 Whenever the hotkey `src` is pressed, suppress it and send
@@ -696,7 +728,7 @@ remap('alt+w', 'ctrl+up')
 
 ## directkeys.**stash\_state**()
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L891)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L891)
 
 
 Builds a list of all currently pressed scan codes, releases them and returns
@@ -708,7 +740,7 @@ the list. Pairs well with [`restore_state`](#directkeys.restore_state) and [`res
 
 ## directkeys.**restore\_state**(scan\_codes)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L903)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L903)
 
 
 Given a list of scan_codes ensures these keys, and only these keys, are
@@ -720,7 +752,7 @@ pressed. Pairs well with [`stash_state`](#directkeys.stash_state), alternative t
 
 ## directkeys.**restore\_modifiers**(scan\_codes)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L920)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L920)
 
 
 Like [`restore_state`](#directkeys.restore_state), but only restores modifier keys.
@@ -731,7 +763,7 @@ Like [`restore_state`](#directkeys.restore_state), but only restores modifier ke
 
 ## directkeys.**write**(text, delay=0, restore\_state\_after=True, exact=None)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L926)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L926)
 
 
 Sends artificial keyboard events to the OS, simulating the typing of a given
@@ -756,7 +788,7 @@ value.
 
 ## directkeys.**wait**(hotkey=None, suppress=False, trigger\_on\_release=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L981)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L981)
 
 
 Blocks the program execution until the given hotkey is pressed or,
@@ -768,7 +800,7 @@ if given no parameters, blocks forever.
 
 ## directkeys.**get\_hotkey\_name**(names=None)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L995)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L995)
 
 
 Returns a string representation of hotkey from the given key names, or
@@ -795,7 +827,7 @@ get_hotkey_name(['+', 'left ctrl', 'shift'])
 
 ## directkeys.**read\_event**(suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1026)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1026)
 
 
 Blocks until a keyboard event happens, then returns that event.
@@ -806,7 +838,7 @@ Blocks until a keyboard event happens, then returns that event.
 
 ## directkeys.**read\_key**(suppress=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1037)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1037)
 
 
 Blocks until a keyboard event happens, then returns that event's name or,
@@ -818,7 +850,7 @@ if missing, its scan code.
 
 ## directkeys.**read\_hotkey**(suppress=True)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1045)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1045)
 
 
 Similar to [`read_key()`](#directkeys.read_key), but blocks until the user presses and releases a
@@ -839,7 +871,7 @@ read_hotkey()
 
 ## directkeys.**get\_typed\_strings**(events, allow\_backspace=True)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1067)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1067)
 
 
 Given a sequence of events, tries to deduce what strings were typed.
@@ -866,7 +898,7 @@ get_type_strings(record()) #-> ['This is what', 'I recorded', '']
 
 ## directkeys.**start\_recording**(recorded\_events\_queue=None)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1114)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1114)
 
 
 Starts recording all keyboard events into a global variable, or the given
@@ -880,7 +912,7 @@ Use [`stop_recording()`](#directkeys.stop_recording) or [`unhook(hooked_function
 
 ## directkeys.**stop\_recording**()
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1126)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1126)
 
 
 Stops the global recording of events and returns a list of the events
@@ -892,7 +924,7 @@ captured.
 
 ## directkeys.**record**(until=&#x27;escape&#x27;, suppress=False, trigger\_on\_release=False)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1138)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1138)
 
 
 Records all keyboard events from all keyboards until the user presses the
@@ -909,7 +941,7 @@ Note: for more details on the keyboard hook and events see [`hook`](#directkeys.
 
 ## directkeys.**play**(events, speed\_factor=1.0)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1152)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1152)
 
 
 Plays a sequence of recorded events, maintaining the relative time
@@ -925,7 +957,7 @@ the end of the function.
 
 ## directkeys.**add\_word\_listener**(word, callback, triggers=[&#x27;space&#x27;], match\_suffix=False, timeout=2)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1176)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1176)
 
 
 Invokes a callback every time a sequence of characters is typed (e.g. 'pet')
@@ -957,7 +989,7 @@ Note: word matches are **case sensitive**.
 
 ## directkeys.**remove\_word\_listener**(word\_or\_handler)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1232)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1232)
 
 
 Removes a previously registered word listener. Accepts either the word used
@@ -970,7 +1002,7 @@ during registration (exact string) or the event handler returned by the
 
 ## directkeys.**add\_abbreviation**(source\_text, replacement\_text, match\_suffix=False, timeout=2)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/__init__.py#L1240)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/__init__.py#L1240)
 
 
 Registers a hotkey that replaces one typed text with another. For example
@@ -997,7 +1029,7 @@ For more details see [`add_word_listener`](#directkeys.add_word_listener).
 
 ## directkeys.**normalize\_name**(name)
 
-[\[source\]](https://github.com/boppreh/keyboard/blob/master/keyboard/_canonical_names.py#L1233)
+[\[source\]](https://github.com/WigoWigo10/keyboard/blob/master/directkeys/_canonical_names.py#L1233)
 
 
 Given a key name (e.g. "LEFT CONTROL"), clean up the string and convert to

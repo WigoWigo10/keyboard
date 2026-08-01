@@ -1,0 +1,133 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "directkeys"
+dynamic = ["version"]
+description ="A modern and robust keyboard hooking and simulation library for Windows and Linux, focusing on low-level control."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.9"
+authors = [{ name = "WigoWigo", email = "hiigoor93@gmail.com" }]
+keywords = ["directkeys", "keyboard", "hook", "simulate", "hotkey", "low-level", "win32", "sendinput"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+dependencies = ["pyobjc; sys_platform=='darwin'"]
+
+[project.urls]
+Homepage = "https://github.com/WigoWigo10/keyboard"
+Source = "https://github.com/WigoWigo10/keyboard"
+Changelog = "https://github.com/WigoWigo10/keyboard/blob/master/CHANGES.md"
+Issues = "https://github.com/WigoWigo10/keyboard/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Read statically from the module, so the version has a single source of truth
+# and the package does not have to be imported at build time.
+[tool.setuptools.dynamic]
+# Must point at __version__, not the `version` alias: setuptools only reads the
+# value statically when it is a literal, and falls back to importing otherwise.
+version = { attr = "directkeys.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# tests/manual needs a physical keyboard and a human operator.
+norecursedirs = ["tests/manual"]
+
+[tool.coverage.run]
+branch = true
+source = ["directkeys"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+# README.md is generated from the __init__ docstring by the `build` target, so
+# letting Ruff reformat its code blocks would put the two permanently out of
+# sync, each rewriting the other on the next run.
+extend-exclude = ["tests/manual", "*.md"]
+
+[tool.ruff.format]
+# Deliberately left off: the __init__ docstring is published verbatim as the
+# PyPI description and regenerated into README.md, so the formatter must not
+# rewrite the example code inside it.
+docstring-code-format = false
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",    # Long lines are pervasive in the ctypes declarations and tables.
+    "E741",    # `l` is a legitimate key name in the canonical name tables.
+    "E701",    # Single-line defs keep the big lookup tables compact.
+    "E731",    # Lambdas are the established idiom for the callback shorthands.
+    "B008",    # Calls in argument defaults are deliberate in the public API.
+    "RUF005",  # Concatenation reads better than unpacking in the event lists.
+    # Inherited from upstream and left alone deliberately, because changing any
+    # of them alters runtime behaviour and none is covered by a test:
+    "F601",    # Repeated dict keys: the earlier name for a key code is dropped.
+    "B006",    # Mutable argument defaults.
+    "B007",    # Unused loop variables.
+    "B018",    # Useless expression (a device probe read for its side effect).
+    "B904",    # `raise` without `from` inside an except clause.
+    "E722",    # Bare `except`.
+    "RUF012",  # Mutable class attributes without ClassVar.
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Imports deliberately follow the module docstring, the version and the
+# platform dispatch, which have to run first.
+"src/directkeys/__init__.py" = ["E402"]
+"src/directkeys/mouse.py" = ["E402"]
+# The ctypes backends group their Win32/Quartz declarations after the module
+# preamble, and bind struct fields that are only read through the C API.
+"src/directkeys/_win*.py" = ["E402", "F403", "F405", "F841"]
+"src/directkeys/_nix*.py" = ["E402", "F403", "F405", "F841"]
+"src/directkeys/_darwin*.py" = ["E402", "F403", "F405", "F841"]
+# _darwinmouse.handler is a verbatim copy of the keyboard listener's handler and
+# calls four names that do not exist in this module, so mouse listening on macOS
+# raises NameError. Rewriting it needs a macOS machine to verify against.
+"src/directkeys/_darwinmouse.py" = ["E402", "F403", "F405", "F841", "F821"]
+# Key names are intentionally spelled in Cyrillic, Greek and accented Latin:
+# flagging them as ambiguous characters is exactly backwards for this table.
+"src/directkeys/_canonical_names.py" = ["RUF001", "RUF003"]
+# The test suite builds its fixtures with star imports and module-level setup.
+"tests/*" = ["E402", "F403", "F405", "F841"]
+# The examples are documentation: they favour brevity over lint compliance.
+"examples/*" = ["E402", "F403", "F405", "F841", "W191", "E101"]

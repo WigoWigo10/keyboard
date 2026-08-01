@@ -1,7 +1,16 @@
+"""
+Testes manuais e interativos do backend do Windows: exigem um teclado real
+(de preferência ABNT2 ou US-INTL, para exercitar o AltGr) e um operador para
+seguir as instruções na tela. Rode com `python tests/manual/altgr_and_stuck_keys.py`.
+"""
 import directkeys
 import time
 import subprocess
 import sys
+import os
+
+# Resolvido a partir deste arquivo, para o script funcionar de qualquer cwd.
+CRASH_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'simulate_stuck_key_crash.py')
 
 def read_next_keydown(suppress=True):
     """
@@ -24,11 +33,11 @@ def test_raw_event_capture():
     print("-" * 50)
 
     directkeys.set_alt_gr_abstraction(False)
-    
+
     print("1. Pressione e solte 'AltGr'...")
     alt_gr_event = read_next_keydown()
     print(f"   -> Recebido: Tecla='{alt_gr_event.name}', Scan={alt_gr_event.scan_code:#04x}, Flags={alt_gr_event.flags}")
-    
+
     print("\n2. Pressione e solte a tecla '/'...")
     slash_event = read_next_keydown()
     print(f"   -> Recebido: Tecla='{slash_event.name}', Scan={slash_event.scan_code:#04x}, Flags={slash_event.flags}")
@@ -43,7 +52,7 @@ def test_raw_event_capture():
     assert esc_event.name == 'esc'
 
     print("✅ Teste 1: SUCESSO!")
-    
+
     directkeys.set_alt_gr_abstraction(True)
 
 def test_stuck_key_fix():
@@ -53,25 +62,24 @@ def test_stuck_key_fix():
     print("\n--- INICIANDO TESTE 2: Correção de Tecla Presa ---")
 
     print("--> Passo 2a: Simulando script que trava com 'Ctrl' pressionado...")
-    crash_script_path = "run_test_2a_crash.py"
-    process = subprocess.Popen([sys.executable, crash_script_path])
+    process = subprocess.Popen([sys.executable, CRASH_SCRIPT])
     process.wait()
     time.sleep(1)
     print("--> Script travado. A tecla 'Ctrl' deve estar 'presa' no sistema.")
-    
+
     # Verificação inicial (opcional, mas bom para confirmar o problema)
     stuck_before = directkeys.get_stuck_keys()
     if 'ctrl' in stuck_before or 'left ctrl' in stuck_before:
         print(f"   [CONFIRMADO] Teclas presas detectadas: {stuck_before}")
     else:
         print(f"   [AVISO] Não foi possível detectar a tecla 'Ctrl' como presa. O teste continua.")
-    
+
     input("--> Pressione Enter para executar a correção...")
 
     print("\n--> Passo 2b: Executando a função de correção 'force_reset_keyboard()'...")
     directkeys.force_reset_keyboard()
     print("--> Função executada.")
-    
+
     # Verificação de ressalva
     print("--> Verificando se ainda há teclas presas...")
     stuck_after = directkeys.get_stuck_keys()
@@ -80,15 +88,12 @@ def test_stuck_key_fix():
         assert False, f"A função force_reset_keyboard não limpou as seguintes teclas: {stuck_after}"
     else:
         print("   [SUCESSO] Nenhuma tecla modificadora presa foi detectada.")
-    
+
     print("\n✅ Teste 2: SUCESSO!")
 
 if __name__ == "__main__":
-    required_script = "run_test_2a_crash.py"
-    try:
-        with open(required_script, "r") as f: pass
-    except FileNotFoundError:
-        print(f"\nERRO: O script auxiliar '{required_script}' não foi encontrado.")
+    if not os.path.exists(CRASH_SCRIPT):
+        print(f"\nERRO: O script auxiliar '{CRASH_SCRIPT}' não foi encontrado.")
         sys.exit(1)
 
     try:
@@ -100,7 +105,7 @@ if __name__ == "__main__":
         directkeys.force_reset_keyboard()
         directkeys.reset_internal_state()
         directkeys.unhook_all()
-        
+
         # Verificação final de ressalva
         final_stuck_keys = directkeys.get_stuck_keys()
         if final_stuck_keys:

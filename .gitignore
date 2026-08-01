@@ -23,6 +23,10 @@ eggs/
 htmlcov/
 coverage_html_report/
 
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+
 # Editor and OS specific files
 .vscode/
 .idea/

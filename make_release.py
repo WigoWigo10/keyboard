@@ -22,60 +22,66 @@ Suggested way to organize your project for a smooth process:
 - Use raw semantic versioning for CHANGES.md and PyPI (e.g. 2.3.1), and prepend 'v' for git tags and releases (e.g. v2.3.1).
 
 """
-import re
-import sys
-import os
-from subprocess import run, check_output
+
 import atexit
+import os
+import re
+from subprocess import check_output, run
+
 import requests
+
 import directkeys
 
-run(['make', 'clean', 'build'], check=True)
+run(["make", "clean", "build"], check=True)
 
-assert re.fullmatch(r'\d+\.\d+\.\d+', directkeys.version)
-last_version = check_output(['git', 'describe', '--abbrev=0'], universal_newlines=True).strip('v\n')
-assert directkeys.version != last_version, 'Must update directkeys.version first.'
+assert re.fullmatch(r"\d+\.\d+\.\d+", directkeys.version)
+last_version = check_output(["git", "describe", "--abbrev=0"], universal_newlines=True).strip("v\n")
+assert directkeys.version != last_version, "Must update directkeys.version first."
 
-commits = check_output(['git', 'log', 'v{}..HEAD'.format(last_version), '--oneline'], universal_newlines=True)
-with open('message.txt', 'w') as message_file:
-    atexit.register(lambda: os.remove('message.txt'))
+commits = check_output(
+    ["git", "log", f"v{last_version}..HEAD", "--oneline"], universal_newlines=True
+)
+with open("message.txt", "w") as message_file:
+    atexit.register(lambda: os.remove("message.txt"))
 
-    message_file.write('\n\n\n')
-    message_file.write('# Enter changes one per line like this:\n')
-    message_file.write('# - Added `foobar`.\n\n\n')
-    message_file.write('# As a reminder, here\'s the last commits since version {}:\n\n'.format(last_version))
-    for line in commits.strip().split('\n'):
-        message_file.write('# {}\n'.format(line))
+    message_file.write("\n\n\n")
+    message_file.write("# Enter changes one per line like this:\n")
+    message_file.write("# - Added `foobar`.\n\n\n")
+    message_file.write(
+        f"# As a reminder, here's the last commits since version {last_version}:\n\n"
+    )
+    for line in commits.strip().split("\n"):
+        message_file.write(f"# {line}\n")
 
-run(['vim', 'message.txt'])
-with open('message.txt') as message_file:
-    lines = [line for line in message_file.readlines() if not line.startswith('#')]
-message = ''.join(lines).strip()
+run(["vim", "message.txt"])
+with open("message.txt") as message_file:
+    lines = [line for line in message_file.readlines() if not line.startswith("#")]
+message = "".join(lines).strip()
 if not message:
-    print('Aborting release due to empty message.')
+    print("Aborting release due to empty message.")
     exit()
-with open('message.txt', 'w') as message_file:
+with open("message.txt", "w") as message_file:
     message_file.write(message)
 
-with open('CHANGES.md') as changes_file:
+with open("CHANGES.md") as changes_file:
     old_changes = changes_file.read()
-with open('CHANGES.md', 'w') as changes_file:
-    changes_file.write('# {}\n\n{}\n\n\n{}'.format(directkeys.version, message, old_changes))
+with open("CHANGES.md", "w") as changes_file:
+    changes_file.write(f"# {directkeys.version}\n\n{message}\n\n\n{old_changes}")
 
 
-tag_name = 'v' + directkeys.version
-if input('Commit README.md and CHANGES.md files? ').lower().startswith('y'):
-    run(['git', 'add', 'CHANGES.md', 'README.md'])
-    run(['git', 'commit', '-m', 'Update changes for {}'.format(tag_name)])
-    run(['git', 'push'])
-run(['git', 'tag', '-a', tag_name, '--file', 'message.txt'], check=True)
-run(['git', 'push', 'origin', tag_name], check=True)
+tag_name = "v" + directkeys.version
+if input("Commit README.md and CHANGES.md files? ").lower().startswith("y"):
+    run(["git", "add", "CHANGES.md", "README.md"])
+    run(["git", "commit", "-m", f"Update changes for {tag_name}"])
+    run(["git", "push"])
+run(["git", "tag", "-a", tag_name, "--file", "message.txt"], check=True)
+run(["git", "push", "origin", tag_name], check=True)
 
-token = input('To make a release enter your GitHub repo authorization token: ').strip()
+token = input("To make a release enter your GitHub repo authorization token: ").strip()
 if token:
-    git_remotes = check_output(['git', 'remote', '-v']).decode('utf-8')
-    repo_path = re.search(r'github.com[:/](.+?)(?:\.git)? \(push\)', git_remotes).group(1)
-    releases_url = 'https://api.github.com/repos/{}/releases'.format(repo_path)
+    git_remotes = check_output(["git", "remote", "-v"]).decode("utf-8")
+    repo_path = re.search(r"github.com[:/](.+?)(?:\.git)? \(push\)", git_remotes).group(1)
+    releases_url = f"https://api.github.com/repos/{repo_path}/releases"
     print(releases_url)
     release = {
         "tag_name": tag_name,
@@ -85,7 +91,9 @@ if token:
         "draft": False,
         "prerelease": False,
     }
-    response = requests.post(releases_url, json=release, headers={'Authorization': 'token ' + token})
+    response = requests.post(
+        releases_url, json=release, headers={"Authorization": "token " + token}
+    )
     print(response.status_code, response.text)
 
-run(['twine', 'upload', 'dist/*'], check=True, shell=True)
+run(["twine", "upload", "dist/*"], check=True, shell=True)
