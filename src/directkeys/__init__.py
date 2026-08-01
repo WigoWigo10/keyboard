@@ -231,7 +231,7 @@ input('Press enter to continue...')
 ```
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 # Kept as an alias: the upstream project exposed the version under this name.
 version = __version__
 
