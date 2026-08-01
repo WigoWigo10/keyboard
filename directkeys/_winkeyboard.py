@@ -452,12 +452,14 @@ def get_modifiers(altgr_is_pressed):
     """
     Retorna uma tupla com os nomes dos modificadores atualmente ativos.
     """
+    # GetKeyState devolve 0x8000 (e não 1) no bit de "pressionado", portanto a
+    # conversão para bool é obrigatória antes de repetir a tupla.
     return (
-        ('shift',) * (user32.GetKeyState(0x10) & 0x8000) +
-        ('alt gr',) * altgr_is_pressed +
-        ('num lock',) * (user32.GetKeyState(0x90) & 1) +
-        ('caps lock',) * (user32.GetKeyState(0x14) & 1) +
-        ('scroll lock',) * (user32.GetKeyState(0x91) & 1)
+        ('shift',) * bool(user32.GetKeyState(0x10) & 0x8000) +
+        ('alt gr',) * bool(altgr_is_pressed) +
+        ('num lock',) * bool(user32.GetKeyState(0x90) & 1) +
+        ('caps lock',) * bool(user32.GetKeyState(0x14) & 1) +
+        ('scroll lock',) * bool(user32.GetKeyState(0x91) & 1)
     )
 
 def get_name(scan_code, vk, is_extended, modifiers):
@@ -552,14 +554,6 @@ def prepare_intercept(callback):
     start_intercept).
     """
     _setup_name_tables()
-    
-    def rebuild_name_tables():
-        """
-        Força a limpeza e reconstrução das tabelas de nomes.
-        Chamado pelo __init__.py quando a configuração de abstração muda.
-        """
-        _clear_name_tables()
-        _setup_name_tables()
 
     # Adicionado 'flags' como parâmetro da função 'process_key'.
     # A função 'process_key' agora irá verificar o switch.
@@ -660,6 +654,14 @@ def _clear_name_tables():
         to_name.clear()
         from_name.clear()
         scan_code_to_vk.clear()
+
+def rebuild_name_tables():
+    """
+    Força a limpeza e reconstrução das tabelas de nomes.
+    Chamado pelo __init__.py quando a configuração de abstração muda.
+    """
+    _clear_name_tables()
+    _setup_name_tables()
 
 def listen(callback):
     prepare_intercept(callback)
