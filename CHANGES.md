@@ -1,3 +1,26 @@
+# 1.0.0
+
+First release of `directkeys`, a fork of [boppreh/keyboard](https://github.com/boppreh/keyboard) 0.13.5.
+The API is unchanged, so migrating is usually just a matter of changing the import.
+
+New features:
+
+- [Windows] Configurable AltGr abstraction via `set_alt_gr_abstraction()` and
+  `get_alt_gr_abstraction_state()`. Enabled by default, it reports the
+  Right Alt + synthetic Left Ctrl pair as a single `alt gr` event; disable it
+  to see the raw events.
+- [Windows] `get_stuck_keys()` reports modifiers left held down, and
+  `force_reset_keyboard()` releases them. Useful after a program crashes
+  without releasing a key it pressed.
+- `KeyboardEvent.flags` exposes the low-level hook flags, and is included in
+  `to_json()`. On Windows it currently carries the `LLKHF_EXTENDED` bit.
+
+Packaging:
+
+- Renamed the package and the distribution to `directkeys`.
+- Metadata moved to `pyproject.toml`; Python 3.8+ is required.
+
+
 # 0.13.5
 
 - Added LICENSE.txt file to PyPI packages.
