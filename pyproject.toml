@@ -36,9 +36,32 @@ Changelog = "https://github.com/WigoWigo10/keyboard/blob/master/CHANGES.md"
 Issues = "https://github.com/WigoWigo10/keyboard/issues"
 
 [tool.setuptools]
-packages = ["directkeys"]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # Read statically from the module, so the version has a single source of truth
 # and the package does not have to be imported at build time.
 [tool.setuptools.dynamic]
 version = { attr = "directkeys.version" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# tests/manual needs a physical keyboard and a human operator.
+norecursedirs = ["tests/manual"]
+
+[tool.coverage.run]
+branch = true
+source = ["directkeys"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"

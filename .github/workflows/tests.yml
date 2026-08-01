@@ -38,7 +38,8 @@ jobs:
           pip install -e .
 
       - name: Run tests
-        run: python -m pytest tests/ -v --ignore=tests/manual
+        # testpaths and norecursedirs come from pyproject.toml.
+        run: python -m pytest -v
 
   build:
     runs-on: ubuntu-latest
