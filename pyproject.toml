@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "directkeys"
+dynamic = ["version"]
+description ="A modern and robust keyboard hooking and simulation library for Windows and Linux, focusing on low-level control."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.8"
+authors = [{ name = "WigoWigo", email = "hiigoor93@gmail.com" }]
+keywords = ["directkeys", "keyboard", "hook", "simulate", "hotkey", "low-level", "win32", "sendinput"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+dependencies = ["pyobjc; sys_platform=='darwin'"]
+
+[project.urls]
+Homepage = "https://github.com/WigoWigo10/keyboard"
+Source = "https://github.com/WigoWigo10/keyboard"
+Changelog = "https://github.com/WigoWigo10/keyboard/blob/master/CHANGES.md"
+Issues = "https://github.com/WigoWigo10/keyboard/issues"
+
+[tool.setuptools]
+packages = ["directkeys"]
+
+# Read statically from the module, so the version has a single source of truth
+# and the package does not have to be imported at build time.
+[tool.setuptools.dynamic]
+version = { attr = "directkeys.version" }
