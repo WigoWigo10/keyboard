@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-keyboard
-========
+directkeys
+==========
 
 Take full control of your keyboard with this small Python library. Hook global events, register hotkeys, simulate key presses and much more.
+
+`directkeys` is an actively maintained fork of [boppreh/keyboard](https://github.com/boppreh/keyboard), which has been dormant since 2021. It keeps the original API so existing code only needs to change the import, and focuses on low-level control of the Windows backend: a configurable AltGr abstraction, raw event flags and recovery from stuck modifier keys.
 
 ## Features
 
@@ -12,7 +14,6 @@ Take full control of your keyboard with this small Python library. Hook global e
 - Works with **Windows** and **Linux** (requires sudo), with experimental **OS X** support (thanks @glitchassassin!).
 - **Pure Python**, no C modules to be compiled.
 - **Zero dependencies**. Trivial to install and deploy, just copy the files.
-- **Python 2 and 3**.
 - Complex hotkey support (e.g. `ctrl+shift+m, ctrl+space`) with controllable timeout.
 - Includes **high level API** (e.g. [record](#directkeys.record) and [play](#directkeys.play), [add_abbreviation](#directkeys.add_abbreviation)).
 - Maps keys as they actually are in your layout, with **full internationalization support** (e.g. `Ctrl+ç`).
@@ -21,19 +22,36 @@ Take full control of your keyboard with this small Python library. Hook global e
 - Doesn't break accented dead keys (I'm looking at you, pyHook).
 - Mouse support available via project [mouse](https://github.com/boppreh/mouse) (`pip install mouse`).
 
+### New in this fork
+
+- **Configurable AltGr abstraction** ([set_alt_gr_abstraction](#directkeys.set_alt_gr_abstraction)): report AltGr as a single event, or expose the raw Windows sequence.
+- **Raw event flags**: `KeyboardEvent.flags` carries the low-level hook flags.
+- **Stuck key recovery** ([get_stuck_keys](#directkeys.get_stuck_keys) and [force_reset_keyboard](#directkeys.force_reset_keyboard)): detect and release modifiers left pressed by a crashed program.
+
 ## Usage
 
-Install the [PyPI package](https://pypi.python.org/pypi/keyboard/):
+Install the [PyPI package](https://pypi.python.org/pypi/directkeys/):
 
-    pip install keyboard
+    pip install directkeys
 
 or clone the repository (no installation required, source files are sufficient):
 
-    git clone https://github.com/boppreh/keyboard
+    git clone https://github.com/WigoWigo10/keyboard
 
-or [download and extract the zip](https://github.com/boppreh/keyboard/archive/master.zip) into your project folder.
+or [download and extract the zip](https://github.com/WigoWigo10/keyboard/archive/master.zip) into your project folder.
 
-Then check the [API docs below](https://github.com/boppreh/keyboard#api) to see what features are available.
+Then check the [API docs below](https://github.com/WigoWigo10/keyboard#api) to see what features are available.
+
+### Migrating from `keyboard`
+
+The whole API is unchanged, so in most cases only the import differs:
+
+```py
+# before
+import keyboard
+# after
+import directkeys as keyboard
+```
 
 
 ## Example
@@ -71,7 +89,7 @@ Use as standalone module:
 
 ```bash
 # Save JSON events to a file until interrupted:
-python -m keyboard > events.txt
+python -m directkeys > events.txt
 
 cat events.txt
 # {"event_type": "down", "scan_code": 25, "name": "p", "time": 1622447562.2994788, "is_keypad": false}
@@ -79,7 +97,7 @@ cat events.txt
 # ...
 
 # Replay events
-python -m keyboard < events.txt
+python -m directkeys < events.txt
 ```
 
 ## Known limitations:
@@ -88,9 +106,9 @@ python -m keyboard < events.txt
 - Media keys on Linux may appear nameless (scan-code only) or not at all. [#20](https://github.com/boppreh/keyboard/issues/20)
 - Key suppression/blocking only available on Windows. [#22](https://github.com/boppreh/keyboard/issues/22)
 - To avoid depending on X, the Linux parts reads raw device files (`/dev/input/input*`) but this requires root.
-- Other applications, such as some games, may register hooks that swallow all key events. In this case `keyboard` will be unable to report events.
+- Other applications, such as some games, may register hooks that swallow all key events. In this case `directkeys` will be unable to report events.
 - This program makes no attempt to hide itself, so don't use it for keyloggers or online gaming bots. Be responsible.
-- SSH connections forward only the text typed, not keyboard events. Therefore if you connect to a server or Raspberry PI that is running `keyboard` via SSH, the server will not detect your key events.
+- SSH connections forward only the text typed, not keyboard events. Therefore if you connect to a server or Raspberry PI that is running `directkeys` via SSH, the server will not detect your key events.
 
 ## Common patterns and mistakes
 
@@ -179,7 +197,7 @@ while True:
 ### 'Press any key to continue'
 
 ```py
-# Don't do this! The `keyboard` module is meant for global events, even when your program is not in focus.
+# Don't do this! The `directkeys` module is meant for global events, even when your program is not in focus.
 #import directkeys
 #print('Press any key to continue...')
 #directkeys.get_event()
