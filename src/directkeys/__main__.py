@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import directkeys
 import fileinput
 import json

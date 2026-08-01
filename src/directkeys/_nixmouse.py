@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import struct
 from subprocess import check_output
 import re

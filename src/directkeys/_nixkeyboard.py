@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import struct
 import traceback
 from time import time as now

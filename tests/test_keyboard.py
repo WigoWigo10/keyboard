@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Side effects are avoided using two techniques:
 
@@ -12,7 +11,6 @@ keyboard,_listener.direct_callback, then, if accepted, appended to
 `output_events`. Fake OS events (directkeys.press) are processed
 and added to `output_events` immediately, mimicking real functionality.
 """
-from __future__ import print_function
 
 import unittest
 import time

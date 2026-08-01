@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import ctypes
 import time
 from ctypes import c_short, c_char, c_uint8, c_int32, c_int, c_uint, c_uint32, c_long, byref, Structure, CFUNCTYPE, POINTER

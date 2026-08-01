@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-
 from time import time as now
 import json
 from ._canonical_names import normalize_name
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 KEY_DOWN = 'down'
 KEY_UP = 'up'
 
-class KeyboardEvent(object):
+class KeyboardEvent:
     event_type = None
     scan_code = None
     name = None

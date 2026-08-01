@@ -5,18 +5,13 @@ import time
 import os
 import threading
 from AppKit import NSEvent
-from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import normalize_name
 from collections import defaultdict
 
-try: # Python 2/3 compatibility
-    unichr
-except NameError:
-    unichr = chr
-
 Carbon = ctypes.cdll.LoadLibrary(ctypes.util.find_library('Carbon'))
 
-class KeyMap(object):
+class KeyMap:
     non_layout_keys = dict((vk, normalize_name(name)) for vk, name in {
         # Layout specific keys from https://stackoverflow.com/a/16125341/252218
         # Unfortunately no source for layout-independent keys was found.
@@ -153,7 +148,7 @@ class KeyMap(object):
                                            ctypes.byref(char_count),
                                            non_shifted_char)
 
-            non_shifted_key = u''.join(unichr(non_shifted_char[i]) for i in range(char_count.value))
+            non_shifted_key = ''.join(chr(non_shifted_char[i]) for i in range(char_count.value))
 
             retval = Carbon.UCKeyTranslate(k_layout_buffer,
                                            key_code,
@@ -166,7 +161,7 @@ class KeyMap(object):
                                            ctypes.byref(char_count),
                                            shifted_char)
 
-            shifted_key = u''.join(unichr(shifted_char[i]) for i in range(char_count.value))
+            shifted_key = ''.join(chr(shifted_char[i]) for i in range(char_count.value))
 
             self.layout_specific_keys[key_code] = (non_shifted_key, shifted_key)
         # Cleanup
@@ -200,7 +195,7 @@ class KeyMap(object):
             raise ValueError("Invalid scan code: {}".format(vk))
 
 
-class KeyController(object):
+class KeyController:
     def __init__(self):
         self.key_map = KeyMap()
         self.current_modifiers = {
@@ -345,7 +340,7 @@ class KeyController(object):
         else:
             return self.key_map.vk_to_character(scan_code)
 
-class KeyEventListener(object):
+class KeyEventListener:
     def __init__(self, callback, blocking=False):
         self.blocking = blocking
         self.callback = callback

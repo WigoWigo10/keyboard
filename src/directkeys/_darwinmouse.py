@@ -21,7 +21,7 @@ _last_click = {
     "click_count": 0
 }
 
-class MouseEventListener(object):
+class MouseEventListener:
     def __init__(self, callback, blocking=False):
         self.blocking = blocking
         self.callback = callback

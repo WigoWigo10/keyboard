@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-try:
-    basestring
-except NameError:
-    basestring = str
-
 import platform
 
 # Defaults to Windows canonical names (platform-specific overrides below)
@@ -1235,7 +1227,7 @@ def normalize_name(name):
     Given a key name (e.g. "LEFT CONTROL"), clean up the string and convert to
     the canonical representation (e.g. "left ctrl") if one is known.
     """
-    if not name or not isinstance(name, basestring):
+    if not name or not isinstance(name, str):
         raise ValueError('Can only normalize non-empty string names. Unexpected '+ repr(name))
 
     if len(name) > 1:

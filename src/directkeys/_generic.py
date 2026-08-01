@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from threading import Thread, Lock
 import traceback
 import functools
@@ -8,7 +7,7 @@ try:
 except ImportError:
     from Queue import Queue
 
-class GenericListener(object):
+class GenericListener:
     lock = Lock()
 
     def __init__(self):

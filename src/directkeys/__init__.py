@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 directkeys
 ==========
@@ -209,9 +208,9 @@ input('Press enter to continue...')
 # https://stackoverflow.com/questions/983354/how-to-make-a-script-wait-for-a-pressed-key
 ```
 """
-from __future__ import print_function as _print_function
-
-version = '1.0.0'
+__version__ = '1.0.0'
+# Kept as an alias: the upstream project exposed the version under this name.
+version = __version__
 
 # Centrally managed state for the AltGr abstraction, read by the backend.
 _ABSTRACT_ALT_GR = True
@@ -219,25 +218,20 @@ _ABSTRACT_ALT_GR = True
 import re as _re
 import itertools as _itertools
 import collections as _collections
-from threading import Thread as _Thread, Lock as _Lock
+import queue as _queue
 import time as _time
-_time.monotonic = getattr(_time, 'monotonic', None) or _time.time
+from threading import Thread as _Thread, Lock as _Lock, Event as _UninterruptibleEvent
 
-try:
-    long, basestring
-    _is_str = lambda x: isinstance(x, basestring)
-    _is_number = lambda x: isinstance(x, (int, long))
-    import Queue as _queue
-    from threading import _Event as _UninterruptibleEvent
-except NameError:
-    _is_str = lambda x: isinstance(x, str)
-    _is_number = lambda x: isinstance(x, int)
-    import queue as _queue
-    from threading import Event as _UninterruptibleEvent
-_is_list = lambda x: isinstance(x, (list, tuple))
+def _is_str(x): return isinstance(x, str)
+def _is_number(x): return isinstance(x, int)
+def _is_list(x): return isinstance(x, (list, tuple))
 
-class _State(object): pass
+# Just a dynamic object to store attributes for the closures.
+class _State: pass
 
+# The "Event" class from `threading` ignores signals when waiting and is
+# impossible to interrupt with Ctrl+C. So we rewrite `wait` to wait in small,
+# interruptible intervals.
 class _Event(_UninterruptibleEvent):
     def wait(self):
         while True:

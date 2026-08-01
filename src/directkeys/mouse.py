@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import warnings
 warnings.simplefilter('always', DeprecationWarning)
 warnings.warn('The mouse sub-library is deprecated and will be removed in future versions. Please use the standalone package `mouse`.', DeprecationWarning, stacklevel=2)

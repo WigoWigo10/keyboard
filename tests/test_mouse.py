@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import unittest
 import time
 
 from directkeys._mouse_event import MoveEvent, ButtonEvent, WheelEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE
 from directkeys import mouse
 
-class FakeOsMouse(object):
+class FakeOsMouse:
     def __init__(self):
         self.append = None
         self.position = (0, 0)

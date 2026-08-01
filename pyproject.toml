@@ -8,7 +8,7 @@ dynamic = ["version"]
 description ="A modern and robust keyboard hooking and simulation library for Windows and Linux, focusing on low-level control."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE.txt" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [{ name = "WigoWigo", email = "hiigoor93@gmail.com" }]
 keywords = ["directkeys", "keyboard", "hook", "simulate", "hotkey", "low-level", "win32", "sendinput"]
 classifiers = [
@@ -18,7 +18,6 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -44,7 +43,9 @@ where = ["src"]
 # Read statically from the module, so the version has a single source of truth
 # and the package does not have to be imported at build time.
 [tool.setuptools.dynamic]
-version = { attr = "directkeys.version" }
+# Must point at __version__, not the `version` alias: setuptools only reads the
+# value statically when it is a literal, and falls back to importing otherwise.
+version = { attr = "directkeys.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

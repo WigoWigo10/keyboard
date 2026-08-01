@@ -15,14 +15,7 @@ jobs:
         # The Linux backend only touches /dev/input from init(), so the suite
         # imports and runs unprivileged against the fake backend, as on Windows.
         os: [windows-latest, ubuntu-latest]
-        python-version: ['3.11', '3.13']
-        include:
-          # ubuntu-latest no longer ships 3.8, the oldest version claimed by
-          # requires-python, so pin the older runner for that one job.
-          - os: ubuntu-22.04
-            python-version: '3.8'
-          - os: windows-latest
-            python-version: '3.8'
+        python-version: ['3.9', '3.11', '3.13']
 
     steps:
       - uses: actions/checkout@v4

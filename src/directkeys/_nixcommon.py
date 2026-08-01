@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import struct
 import os
 import atexit
@@ -48,7 +47,7 @@ def make_uinput():
 
     return uinput
 
-class EventDevice(object):
+class EventDevice:
     def __init__(self, path):
         self.path = path
         self._input_file = None
@@ -96,7 +95,7 @@ class EventDevice(object):
         self.output_file.write(data_event + sync_event)
         self.output_file.flush()
 
-class AggregatedEventDevice(object):
+class AggregatedEventDevice:
     def __init__(self, devices, output=None):
         self.event_queue = Queue()
         self.devices = devices
