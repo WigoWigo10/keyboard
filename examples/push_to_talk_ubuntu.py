@@ -1,7 +1,8 @@
-#quick and dirty push-to-talk example for Ubuntu 16.04, by Abd Azrad 
+#quick and dirty push-to-talk example for Ubuntu 16.04, by Abd Azrad
+
+import subprocess
 
 import directkeys
-import subprocess
 
 is_muted = False
 

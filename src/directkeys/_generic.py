@@ -1,6 +1,5 @@
-from threading import Thread, Lock
 import traceback
-import functools
+from threading import Lock, Thread
 
 try:
     from queue import Queue
@@ -21,7 +20,7 @@ class GenericListener:
                 if handler(event):
                     # Stop processing this hotkey.
                     return 1
-            except Exception as e:
+            except Exception:
                 traceback.print_exc()
 
     def start_if_necessary(self):
@@ -57,7 +56,7 @@ class GenericListener:
             if self.pre_process_event(event):
                 self.invoke_handlers(event)
             self.queue.task_done()
-            
+
     def add_handler(self, handler):
         """
         Adds a function to receive each event captured, starting the capturing

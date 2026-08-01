@@ -1,5 +1,6 @@
-import directkeys
 import time
+
+import directkeys
 
 # Sends 20 "key down" events in 0.1 second intervals, followed by a single
 # "key up" event.

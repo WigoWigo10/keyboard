@@ -1,8 +1,21 @@
-import unittest
 import time
+import unittest
 
-from directkeys._mouse_event import MoveEvent, ButtonEvent, WheelEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE
 from directkeys import mouse
+from directkeys._mouse_event import (
+    DOUBLE,
+    DOWN,
+    LEFT,
+    MIDDLE,
+    RIGHT,
+    UP,
+    X2,
+    ButtonEvent,
+    MoveEvent,
+    WheelEvent,
+    X,
+)
+
 
 class FakeOsMouse:
     def __init__(self):
@@ -195,7 +208,7 @@ class TestMouse(unittest.TestCase):
 
     def test_wait(self):
         # If this fails it blocks. Unfortunately, but I see no other way of testing.
-        from threading import Thread, Lock
+        from threading import Lock, Thread
         lock = Lock()
         lock.acquire()
         def t():
@@ -206,7 +219,7 @@ class TestMouse(unittest.TestCase):
         lock.acquire()
 
     def test_record_play(self):
-        from threading import Thread, Lock
+        from threading import Lock, Thread
         lock = Lock()
         lock.acquire()
         def t():

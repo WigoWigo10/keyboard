@@ -1,18 +1,18 @@
 import ctypes
 import ctypes.util
-import Quartz
 import time
-import os
-import threading
-from AppKit import NSEvent
-from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
-from ._canonical_names import normalize_name
 from collections import defaultdict
+
+import Quartz
+from AppKit import NSEvent
+
+from ._canonical_names import normalize_name
+from ._keyboard_event import KeyboardEvent
 
 Carbon = ctypes.cdll.LoadLibrary(ctypes.util.find_library('Carbon'))
 
 class KeyMap:
-    non_layout_keys = dict((vk, normalize_name(name)) for vk, name in {
+    non_layout_keys = {vk: normalize_name(name) for vk, name in {
         # Layout specific keys from https://stackoverflow.com/a/16125341/252218
         # Unfortunately no source for layout-independent keys was found.
         0x24: 'return',
@@ -62,7 +62,7 @@ class KeyMap:
         0x7c: 'right',
         0x7d: 'down',
         0x7e: 'up',
-    }.items())
+    }.items()}
     layout_specific_keys = {}
     def __init__(self):
         # Virtual key codes are usually the same for any given key, unless you have a different
@@ -178,7 +178,7 @@ class KeyMap:
                 return (vk, [])
             elif self.layout_specific_keys[vk][1] == character:
                 return (vk, ['shift'])
-        raise ValueError("Unrecognized character: {}".format(character))
+        raise ValueError(f"Unrecognized character: {character}")
 
     def vk_to_character(self, vk, modifiers=[]):
         """ Returns a character corresponding to the specified scan code (with given
@@ -192,7 +192,7 @@ class KeyMap:
             return self.layout_specific_keys[vk][0]
         else:
             # Invalid vk
-            raise ValueError("Invalid scan code: {}".format(vk))
+            raise ValueError(f"Invalid scan code: {vk}")
 
 
 class KeyController:
@@ -231,7 +231,7 @@ class KeyController:
             'KEYTYPE_ILLUMINATION_DOWN': 22,
             'KEYTYPE_ILLUMINATION_TOGGLE': 23
         }
-    
+
     def press(self, key_code):
         """ Sends a 'down' event for the specified scan code """
         if key_code >= 128:
@@ -439,7 +439,7 @@ def release(scan_code):
     key_controller.release(scan_code)
 
 def map_name(name):
-    """ Returns a tuple of (scan_code, modifiers) where ``scan_code`` is a numeric scan code 
+    """ Returns a tuple of (scan_code, modifiers) where ``scan_code`` is a numeric scan code
     and ``modifiers`` is an array of string modifier names (like 'shift') """
     yield key_controller.map_char(name)
 

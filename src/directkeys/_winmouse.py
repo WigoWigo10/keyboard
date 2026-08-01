@@ -1,12 +1,36 @@
 import ctypes
 import time
-from ctypes import c_short, c_char, c_uint8, c_int32, c_int, c_uint, c_uint32, c_long, byref, Structure, CFUNCTYPE, POINTER
-from ctypes.wintypes import DWORD, BOOL, HHOOK, MSG, LPWSTR, WCHAR, WPARAM, LPARAM
+from ctypes import (
+    CFUNCTYPE,
+    POINTER,
+    Structure,
+    byref,
+    c_int,
+    c_int32,
+    c_long,
+)
+from ctypes.wintypes import BOOL, DWORD, HHOOK, LPARAM, MSG, WPARAM
+
 LPMSG = POINTER(MSG)
 
 import atexit
 
-from ._mouse_event import ButtonEvent, WheelEvent, MoveEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE, WHEEL, HORIZONTAL, VERTICAL
+from ._mouse_event import (
+    DOUBLE,
+    DOWN,
+    HORIZONTAL,
+    LEFT,
+    MIDDLE,
+    RIGHT,
+    UP,
+    VERTICAL,
+    WHEEL,
+    X2,
+    ButtonEvent,
+    MoveEvent,
+    WheelEvent,
+    X,
+)
 
 #https://github.com/boppreh/mouse/issues/1
 #user32 = ctypes.windll.user32

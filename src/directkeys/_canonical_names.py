@@ -1200,7 +1200,7 @@ canonical_names = {
     "Zsmall": "",
 }
 sided_modifiers = {'ctrl', 'alt', 'shift', 'windows'}
-all_modifiers = {'alt', 'alt gr', 'ctrl', 'shift', 'windows'} | set('left ' + n for n in sided_modifiers) | set('right ' + n for n in sided_modifiers)
+all_modifiers = {'alt', 'alt gr', 'ctrl', 'shift', 'windows'} | {'left ' + n for n in sided_modifiers} | {'right ' + n for n in sided_modifiers}
 
 # Platform-specific canonical overrides
 

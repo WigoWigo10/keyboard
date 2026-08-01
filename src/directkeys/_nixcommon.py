@@ -1,9 +1,10 @@
-import struct
-import os
 import atexit
-from time import time as now
-from threading import Thread
+import os
+import struct
 from glob import glob
+from threading import Thread
+from time import time as now
+
 try:
     from queue import Queue
 except ImportError:
@@ -21,9 +22,10 @@ EV_MSC = 0x04
 
 def make_uinput():
     if not os.path.exists('/dev/uinput'):
-        raise IOError('No uinput module found.')
+        raise OSError('No uinput module found.')
 
-    import fcntl, struct
+    import fcntl
+    import struct
 
     # Requires uinput driver, but it's usually available.
     uinput = open("/dev/uinput", 'wb')
@@ -58,9 +60,9 @@ class EventDevice:
         if self._input_file is None:
             try:
                 self._input_file = open(self.path, 'rb')
-            except IOError as e:
+            except OSError as e:
                 if e.strerror == 'Permission denied':
-                    print("# ERROR: Failed to read device '{}'. You must be in the 'input' group to access global events. Use 'sudo usermod -a -G input USERNAME' to add user to the required group.".format(self.path))
+                    print(f"# ERROR: Failed to read device '{self.path}'. You must be in the 'input' group to access global events. Use 'sudo usermod -a -G input USERNAME' to add user to the required group.")
                     exit()
 
             def try_close():
@@ -116,6 +118,7 @@ class AggregatedEventDevice:
 
 import re
 from collections import namedtuple
+
 DeviceDescription = namedtuple('DeviceDescription', 'event_file is_mouse is_keyboard')
 device_pattern = r"""N: Name="([^"]+?)".+?H: Handlers=([^\n]+)"""
 def list_devices_from_proc(type_name):
@@ -145,7 +148,7 @@ def aggregate_devices(type_name):
         fake_device = EventDevice('uinput Fake Device')
         fake_device._input_file = uinput
         fake_device._output_file = uinput
-    except IOError as e:
+    except OSError:
         import warnings
         warnings.warn('Failed to create a device file using `uinput` module. Sending of events may be limited or unavailable depending on plugged-in devices.', stacklevel=2)
         fake_device = None

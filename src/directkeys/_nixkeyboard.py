@@ -1,8 +1,5 @@
-import struct
-import traceback
-from time import time as now
-from collections import namedtuple
-from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from directkeys._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
+
 from ._canonical_names import all_modifiers, normalize_name
 from ._nixcommon import EV_KEY, aggregate_devices
 
@@ -37,16 +34,16 @@ def cleanup_modifier(modifier):
         return modifier
     if modifier[:-1] in all_modifiers:
         return modifier[:-1]
-    raise ValueError('Unknown modifier {}'.format(modifier))
+    raise ValueError(f'Unknown modifier {modifier}')
 
 """
 Use `dumpkeys --keys-only` to list all scan codes and their names. We
 then parse the output and built a table. For each scan code and modifiers we
 have a list of names and vice-versa.
 """
-from subprocess import check_output, CalledProcessError, PIPE
-from collections import defaultdict
 import re
+from collections import defaultdict
+from subprocess import CalledProcessError, check_output
 
 to_name = defaultdict(list)
 from_name = defaultdict(list)
@@ -141,7 +138,7 @@ def listen(callback):
         pressed_modifiers_tuple = tuple(sorted(pressed_modifiers))
         names = to_name[(scan_code, pressed_modifiers_tuple)] or to_name[(scan_code, ())] or ['unknown']
         name = names[0]
-            
+
         if name in all_modifiers:
             if event_type == KEY_DOWN:
                 pressed_modifiers.add(name)

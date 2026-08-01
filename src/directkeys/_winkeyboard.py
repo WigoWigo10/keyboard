@@ -9,15 +9,14 @@ well documented on Microsoft's website and scattered examples.
 - Keypad numbers still print as numbers even when numlock is off.
 - No way to specify if user wants a keypad key or not in `map_char`.
 """
-import re
 import atexit
-import traceback
-from threading import Lock
-from collections import defaultdict
 import time
+import traceback
+from collections import defaultdict
+from threading import Lock
 
-from ._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
 from ._canonical_names import normalize_name
+from ._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
 
 _altgr_right_alt_scan_code = None
 _altgr_right_alt_flags = None
@@ -26,8 +25,33 @@ _altgr_right_alt_flags = None
 # this would be simply #include "windows.h".
 
 import ctypes
-from ctypes import c_short, c_char, c_uint8, c_int32, c_int, c_uint, c_uint32, c_long, Structure, WINFUNCTYPE, POINTER
-from ctypes.wintypes import WORD, DWORD, BOOL, HHOOK, MSG, LPWSTR, WCHAR, WPARAM, LPARAM, LONG, HMODULE, LPCWSTR, HINSTANCE, HWND
+from ctypes import (
+    POINTER,
+    WINFUNCTYPE,
+    Structure,
+    c_int,
+    c_long,
+    c_short,
+    c_uint,
+    c_uint8,
+)
+from ctypes.wintypes import (
+    BOOL,
+    DWORD,
+    HHOOK,
+    HINSTANCE,
+    HMODULE,
+    HWND,
+    LONG,
+    LPARAM,
+    LPCWSTR,
+    LPWSTR,
+    MSG,
+    WCHAR,
+    WORD,
+    WPARAM,
+)
+
 LPMSG = POINTER(MSG)
 ULONG_PTR = POINTER(DWORD)
 
@@ -143,7 +167,7 @@ MAPVK_VK_TO_CHAR = 2
 MAPVK_VK_TO_VSC = 0
 MAPVK_VSC_TO_VK = 1
 MAPVK_VK_TO_VSC_EX = 4
-MAPVK_VSC_TO_VK_EX = 3 
+MAPVK_VSC_TO_VK_EX = 3
 
 VkKeyScan = user32.VkKeyScanW
 VkKeyScan.argtypes = [WCHAR]
@@ -603,7 +627,7 @@ def prepare_intercept(callback):
 
                 if not should_continue:
                     return -1
-        except Exception as e:
+        except Exception:
             print('Error in keyboard hook:')
             traceback.print_exc()
 
@@ -646,9 +670,9 @@ def map_name(name):
 
     entries = from_name.get(name)
     if not entries:
-        raise ValueError('Key name {} is not mapped to any known key.'.format(repr(name)))
+        raise ValueError(f'Key name {name!r} is not mapped to any known key.')
     for i, entry in entries:
-        scan_code, vk, is_extended, modifiers = entry
+        scan_code, vk, _is_extended, modifiers = entry
         yield scan_code or -vk, modifiers
 
 def _send_event(code, event_type):

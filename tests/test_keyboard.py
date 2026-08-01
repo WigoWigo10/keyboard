@@ -12,11 +12,11 @@ keyboard,_listener.direct_callback, then, if accepted, appended to
 and added to `output_events` immediately, mimicking real functionality.
 """
 
-import unittest
 import time
+import unittest
 
 import directkeys
-from directkeys._keyboard_event import KeyboardEvent, KEY_DOWN, KEY_UP
+from directkeys._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
 
 dummy_keys = {
     'space': [(0, [])],
@@ -112,7 +112,7 @@ class TestKeyboard(unittest.TestCase):
         directkeys._logically_pressed_keys.clear()
         directkeys._hotkeys.clear()
         directkeys._listener.init()
-        directkeys._word_listeners = {} 
+        directkeys._word_listeners = {}
 
     def do(self, manual_events, expected=None):
         input_events.extend(manual_events)
@@ -128,7 +128,7 @@ class TestKeyboard(unittest.TestCase):
         directkeys._listener.queue.join()
 
     def test_event_json(self):
-        event = make_event(KEY_DOWN, u'á \'"', 999)
+        event = make_event(KEY_DOWN, 'á \'"', 999)
         import json
         self.assertEqual(event, KeyboardEvent(**json.loads(event.to_json())))
 
@@ -403,7 +403,7 @@ class TestKeyboard(unittest.TestCase):
     def test_write_simple(self):
         directkeys.write('a', exact=False)
         self.do([], d_a+u_a)
-    def test_write_multiple(self):
+    def test_write_multiple_no_delay(self):
         directkeys.write('ab', exact=False)
         self.do([], d_a+u_a+d_b+u_b)
     def test_write_modifiers(self):
@@ -427,8 +427,8 @@ class TestKeyboard(unittest.TestCase):
         directkeys.write('ab', exact=True)
         self.do([], [KeyboardEvent(event_type=KEY_DOWN, scan_code=999, name='a'), KeyboardEvent(event_type=KEY_DOWN, scan_code=999, name='b')])
     def test_write_unicode_fallback(self):
-        directkeys.write(u'áb', exact=False)
-        self.do([], [KeyboardEvent(event_type=KEY_DOWN, scan_code=999, name=u'á')]+d_b+u_b)
+        directkeys.write('áb', exact=False)
+        self.do([], [KeyboardEvent(event_type=KEY_DOWN, scan_code=999, name='á')]+d_b+u_b)
 
     def test_start_stop_recording(self):
         directkeys.start_recording()
@@ -579,7 +579,7 @@ class TestKeyboard(unittest.TestCase):
     def test_add_hotkey_single_step_suppress_single(self):
         directkeys.add_hotkey('a', trigger, suppress=True)
         self.do(d_a, triggered_event)
-    def test_add_hotkey_single_step_suppress_removed(self):
+    def test_add_hotkey_single_step_suppress_removed_no_modifier(self):
         directkeys.remove_hotkey(directkeys.add_hotkey('a', trigger, suppress=True))
         self.do(d_a, d_a)
     def test_add_hotkey_single_step_suppress_removed(self):
@@ -626,7 +626,7 @@ class TestKeyboard(unittest.TestCase):
     def test_add_hotkey_single_step_suppress_with_modifiers_unrelated_key(self):
         directkeys.add_hotkey('ctrl+shift+a', trigger, suppress=True)
         self.do(d_ctrl+d_shift+du_b+d_a, d_shift+d_ctrl+du_b+triggered_event)
-    def test_add_hotkey_single_step_suppress_with_modifiers_release(self):
+    def test_add_hotkey_single_step_suppress_with_two_modifiers_release(self):
         directkeys.add_hotkey('ctrl+shift+a', trigger, suppress=True)
         self.do(d_ctrl+d_shift+du_b+d_a+u_ctrl+u_shift, d_shift+d_ctrl+du_b+triggered_event+u_ctrl+u_shift)
     def test_add_hotkey_single_step_suppress_with_modifiers_out_of_order(self):
@@ -733,7 +733,7 @@ class TestKeyboard(unittest.TestCase):
             directkeys.parse_hotkey_combinations('')
 
 
-    def test_add_hotkey_multistep_suppress_incomplete(self):
+    def test_add_hotkey_multistep_suppress_incomplete_blocking_state(self):
         directkeys.add_hotkey('a, b', trigger, suppress=True)
         self.do(du_a, [])
         self.assertEqual(directkeys._listener.blocking_hotkeys[(1,)], [])

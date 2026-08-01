@@ -66,3 +66,59 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+extend-exclude = ["tests/manual"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",    # Long lines are pervasive in the ctypes declarations and tables.
+    "E741",    # `l` is a legitimate key name in the canonical name tables.
+    "E701",    # Single-line defs keep the big lookup tables compact.
+    "E731",    # Lambdas are the established idiom for the callback shorthands.
+    "B008",    # Calls in argument defaults are deliberate in the public API.
+    "RUF005",  # Concatenation reads better than unpacking in the event lists.
+    # Inherited from upstream and left alone deliberately, because changing any
+    # of them alters runtime behaviour and none is covered by a test:
+    "F601",    # Repeated dict keys: the earlier name for a key code is dropped.
+    "B006",    # Mutable argument defaults.
+    "B007",    # Unused loop variables.
+    "B018",    # Useless expression (a device probe read for its side effect).
+    "B904",    # `raise` without `from` inside an except clause.
+    "E722",    # Bare `except`.
+    "RUF012",  # Mutable class attributes without ClassVar.
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Imports deliberately follow the module docstring, the version and the
+# platform dispatch, which have to run first.
+"src/directkeys/__init__.py" = ["E402"]
+"src/directkeys/mouse.py" = ["E402"]
+# The ctypes backends group their Win32/Quartz declarations after the module
+# preamble, and bind struct fields that are only read through the C API.
+"src/directkeys/_win*.py" = ["E402", "F403", "F405", "F841"]
+"src/directkeys/_nix*.py" = ["E402", "F403", "F405", "F841"]
+"src/directkeys/_darwin*.py" = ["E402", "F403", "F405", "F841"]
+# _darwinmouse.handler is a verbatim copy of the keyboard listener's handler and
+# calls four names that do not exist in this module, so mouse listening on macOS
+# raises NameError. Rewriting it needs a macOS machine to verify against.
+"src/directkeys/_darwinmouse.py" = ["E402", "F403", "F405", "F841", "F821"]
+# Key names are intentionally spelled in Cyrillic, Greek and accented Latin:
+# flagging them as ambiguous characters is exactly backwards for this table.
+"src/directkeys/_canonical_names.py" = ["RUF001", "RUF003"]
+# The test suite builds its fixtures with star imports and module-level setup.
+"tests/*" = ["E402", "F403", "F405", "F841"]
+# The examples are documentation: they favour brevity over lint compliance.
+"examples/*" = ["E402", "F403", "F405", "F841", "W191", "E101"]

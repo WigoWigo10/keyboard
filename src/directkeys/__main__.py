@@ -1,7 +1,9 @@
-import directkeys
 import fileinput
 import json
 import sys
+
+import directkeys
+
 
 def print_event_json(event):
     print(event.to_json(ensure_ascii=sys.stdout.encoding != 'utf-8'))

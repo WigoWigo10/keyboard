@@ -1,5 +1,6 @@
-import directkeys
 import time
+
+import directkeys
 
 directkeys.start_recording()
 time.sleep(10)

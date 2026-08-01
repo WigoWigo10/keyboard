@@ -215,12 +215,15 @@ version = __version__
 # Centrally managed state for the AltGr abstraction, read by the backend.
 _ABSTRACT_ALT_GR = True
 
-import re as _re
-import itertools as _itertools
 import collections as _collections
+import itertools as _itertools
 import queue as _queue
+import re as _re
 import time as _time
-from threading import Thread as _Thread, Lock as _Lock, Event as _UninterruptibleEvent
+from threading import Event as _UninterruptibleEvent
+from threading import Lock as _Lock
+from threading import Thread as _Thread
+
 
 def _is_str(x): return isinstance(x, str)
 def _is_number(x): return isinstance(x, int)
@@ -239,12 +242,15 @@ class _Event(_UninterruptibleEvent):
                 break
 
 # Load the base dependencies before the backend, to avoid a circular import.
-from ._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent
-from ._generic import GenericListener as _GenericListener
-from ._canonical_names import all_modifiers, sided_modifiers, normalize_name
-
 # Import the platform specific backend.
 import platform as _platform
+
+from ._canonical_names import all_modifiers, normalize_name, sided_modifiers
+from ._generic import GenericListener as _GenericListener
+
+# KeyboardEvent is re-exported as part of the public API, not used here.
+from ._keyboard_event import KEY_DOWN, KEY_UP, KeyboardEvent  # noqa: F401
+
 if _platform.system() == 'Windows':
     from . import _winkeyboard as _os_keyboard
 elif _platform.system() == 'Linux':
@@ -257,7 +263,7 @@ elif _platform.system() == 'Darwin':
         # read the version before pyobjc is available.
         _os_keyboard = None
 else:
-    raise OSError("Unsupported platform '{}'".format(_platform.system()))
+    raise OSError(f"Unsupported platform '{_platform.system()}'")
 
 def set_alt_gr_abstraction(enabled):
     """
@@ -319,7 +325,7 @@ def is_modifier(key):
         return key in all_modifiers
     else:
         if not _modifier_scan_codes:
-            scan_codes = (key_to_scan_codes(name, False) for name in all_modifiers) 
+            scan_codes = (key_to_scan_codes(name, False) for name in all_modifiers)
             _modifier_scan_codes.update(*scan_codes)
         return key in _modifier_scan_codes
 
@@ -426,7 +432,7 @@ class _KeyboardListener(_GenericListener):
             hotkey = tuple(sorted(_pressed_events))
             if event_type == KEY_UP:
                 self.active_modifiers.discard(scan_code)
-                if scan_code in _pressed_events: del _pressed_events[scan_code]
+                _pressed_events.pop(scan_code, None)
 
         # Mappings based on individual keys instead of hotkeys.
         for key_hook in self.blocking_keys[scan_code]:
@@ -439,7 +445,7 @@ class _KeyboardListener(_GenericListener):
         if self.blocking_hotkeys:
             if self.filtered_modifiers[scan_code]:
                 origin = 'modifier'
-                modifiers_to_update = set([scan_code])
+                modifiers_to_update = {scan_code}
             else:
                 modifiers_to_update = self.active_modifiers
                 if is_modifier(scan_code):
@@ -500,7 +506,7 @@ def key_to_scan_codes(key, error_if_missing=True):
         e = exception
 
     if not t and error_if_missing:
-        raise ValueError('Key {} is not mapped to any known key.'.format(repr(key)), e)
+        raise ValueError(f'Key {key!r} is not mapped to any known key.', e)
     else:
         return t
 
@@ -597,7 +603,7 @@ def is_pressed(hotkey):
     if len(steps) > 1:
         raise ValueError("Impossible to check if multi-step hotkeys are pressed (`a+b` is ok, `a, b` isn't).")
 
-    # Convert _pressed_events into a set 
+    # Convert _pressed_events into a set
     with _pressed_events_lock:
         pressed_scan_codes = set(_pressed_events)
     for scan_codes in steps[0]:
@@ -619,7 +625,7 @@ def hook(callback, suppress=False, on_remove=lambda: None):
     """
     Installs a global listener on all available keyboards, invoking `callback`
     each time a key is pressed or released.
-    
+
     The event passed to the callback is of type `directkeys.KeyboardEvent`,
     with the following attributes:
 
@@ -758,7 +764,7 @@ def _add_hotkey_step(handler, combinations, suppress):
     container = _listener.blocking_hotkeys if suppress else _listener.nonblocking_hotkeys
 
     # Register the scan codes of every possible combination of
-    # modfiier + main key. Modifiers have to be registered in 
+    # modfiier + main key. Modifiers have to be registered in
     # filtered_modifiers too, so suppression and replaying can work.
     for scan_codes in combinations:
         for scan_code in scan_codes:
@@ -842,7 +848,7 @@ def add_hotkey(hotkey, callback, args=(), suppress=False, timeout=1, trigger_on_
     state.remove_last_step = None
     state.suppressed_events = []
     state.last_update = float('-inf')
-    
+
     def catch_misses(event, force_fail=False):
         if (
                 event.event_type == event_type
@@ -862,7 +868,6 @@ def add_hotkey(hotkey, callback, args=(), suppress=False, timeout=1, trigger_on_
                     release(event.scan_code)
             del state.suppressed_events[:]
 
-            index = 0
             set_index(0)
         return True
 
@@ -884,7 +889,7 @@ def add_hotkey(hotkey, callback, args=(), suppress=False, timeout=1, trigger_on_
                 if event.event_type == KEY_UP:
                     remove()
                     set_index(0)
-                accept = event.event_type == event_type and callback() 
+                accept = event.event_type == event_type and callback()
                 if accept:
                     return catch_misses(event, force_fail=True)
                 else:
@@ -994,7 +999,7 @@ def restore_modifiers(scan_codes):
     """
     Like `restore_state`, but only restores modifier keys.
     """
-    restore_state((scan_code for scan_code in scan_codes if is_modifier(scan_code)))
+    restore_state(scan_code for scan_code in scan_codes if is_modifier(scan_code))
 
 def write(text, delay=0, restore_state_after=True, exact=None):
     """
@@ -1018,7 +1023,7 @@ def write(text, delay=0, restore_state_after=True, exact=None):
         exact = _platform.system() == 'Windows'
 
     state = stash_state()
-    
+
     # Window's typing of unicode characters is quite efficient and should be preferred.
     if exact:
         for letter in text:
@@ -1035,7 +1040,7 @@ def write(text, delay=0, restore_state_after=True, exact=None):
             except (KeyError, ValueError, StopIteration):
                 _os_keyboard.type_unicode(letter)
                 continue
-            
+
             for modifier in modifiers:
                 press(modifier)
 
@@ -1088,7 +1093,7 @@ def get_hotkey_name(names=None):
             names = [e.name for e in _pressed_events.values()]
     else:
         names = [normalize_name(name) for name in names]
-    clean_names = set(e.replace('left ', '').replace('right ', '').replace('+', 'plus') for e in names)
+    clean_names = {e.replace('left ', '').replace('right ', '').replace('+', 'plus') for e in names}
     # https://developer.apple.com/macos/human-interface-guidelines/input-and-output/keyboard/
     # > List modifier keys in the correct order. If you use more than one modifier key in a
     # > hotkey, always list them in this order: Control, Option, Shift, Command.
@@ -1295,12 +1300,9 @@ def add_word_listener(word, callback, triggers=['space'], match_suffix=False, ti
     hooked = hook(handler)
     def remove():
         hooked()
-        if word in _word_listeners:
-            del _word_listeners[word]
-        if handler in _word_listeners:
-            del _word_listeners[handler]
-        if remove in _word_listeners:
-            del _word_listeners[remove]
+        _word_listeners.pop(word, None)
+        _word_listeners.pop(handler, None)
+        _word_listeners.pop(remove, None)
     _word_listeners[word] = _word_listeners[handler] = _word_listeners[remove] = remove
     # TODO: allow multiple word listeners and removing them correctly.
     return remove
@@ -1327,7 +1329,7 @@ def add_abbreviation(source_text, replacement_text, match_suffix=False, timeout=
     listener for 'pet'. Defaults to false, only whole words are checked.
     - `timeout` is the maximum number of seconds between typed characters before
     the current word is discarded. Defaults to 2 seconds.
-    
+
     For more details see `add_word_listener`.
     """
     replacement = '\b'*(len(source_text)+1) + replacement_text

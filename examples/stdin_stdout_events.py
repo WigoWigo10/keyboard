@@ -12,7 +12,7 @@ from stdin to simulate events. Example:
 	{"event_type": "up", "name": "f", "scan_code": 33, "time": 1491442622.9056144}
 """
 import sys
+
 sys.path.append('..')
 
 # Also available as just `python -m keyboard`.
-from directkeys import __main__

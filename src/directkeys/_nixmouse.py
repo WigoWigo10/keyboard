@@ -1,12 +1,10 @@
-import struct
-from subprocess import check_output
-import re
-from ._nixcommon import EV_KEY, EV_REL, EV_MSC, EV_SYN, EV_ABS, aggregate_devices
-from ._mouse_event import ButtonEvent, WheelEvent, MoveEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN
-
 import ctypes
 import ctypes.util
-from ctypes import c_uint32, c_uint, c_int, byref
+import struct
+from ctypes import byref, c_int, c_uint, c_uint32
+
+from ._mouse_event import DOWN, LEFT, MIDDLE, RIGHT, UP, X2, ButtonEvent, MoveEvent, WheelEvent, X
+from ._nixcommon import EV_KEY, EV_MSC, EV_REL, EV_SYN, aggregate_devices
 
 display = None
 window = None
@@ -74,7 +72,7 @@ def listen(queue):
     build_device()
 
     while True:
-        time, type, code, value, device_id = device.read_event()
+        time, type, code, value, _device_id = device.read_event()
         if type == EV_SYN or type == EV_MSC:
             continue
 

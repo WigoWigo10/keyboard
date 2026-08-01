@@ -1,5 +1,6 @@
-from time import time as now
 import json
+from time import time as now
+
 from ._canonical_names import normalize_name
 
 KEY_DOWN = 'down'
@@ -27,14 +28,14 @@ class KeyboardEvent:
             self.name = normalize_name(name)
 
     def to_json(self, ensure_ascii=False):
-        attrs = dict(
-            (attr, getattr(self, attr)) for attr in ['event_type', 'scan_code', 'name', 'time', 'device', 'is_keypad', 'modifiers', 'flags']
+        attrs = {
+            attr: getattr(self, attr) for attr in ['event_type', 'scan_code', 'name', 'time', 'device', 'is_keypad', 'modifiers', 'flags']
             if not attr.startswith('_')
-        )
+        }
         return json.dumps(attrs, ensure_ascii=ensure_ascii)
 
     def __repr__(self):
-        return 'KeyboardEvent({} {})'.format(self.name or 'Unknown {}'.format(self.scan_code), self.event_type)
+        return 'KeyboardEvent({} {})'.format(self.name or f'Unknown {self.scan_code}', self.event_type)
 
     def __eq__(self, other):
         return (

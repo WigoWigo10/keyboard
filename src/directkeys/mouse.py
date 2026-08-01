@@ -1,21 +1,34 @@
 import warnings
+
 warnings.simplefilter('always', DeprecationWarning)
 warnings.warn('The mouse sub-library is deprecated and will be removed in future versions. Please use the standalone package `mouse`.', DeprecationWarning, stacklevel=2)
 
+import platform as _platform
 import time as _time
 
-import platform as _platform
 if _platform.system() == 'Windows':
-    from. import _winmouse as _os_mouse
+    from . import _winmouse as _os_mouse
 elif _platform.system() == 'Linux':
-    from. import _nixmouse as _os_mouse
+    from . import _nixmouse as _os_mouse
 elif _platform.system() == 'Darwin':
-    from. import _darwinmouse as _os_mouse
+    from . import _darwinmouse as _os_mouse
 else:
-    raise OSError("Unsupported platform '{}'".format(_platform.system()))
+    raise OSError(f"Unsupported platform '{_platform.system()}'")
 
-from ._mouse_event import ButtonEvent, MoveEvent, WheelEvent, LEFT, RIGHT, MIDDLE, X, X2, UP, DOWN, DOUBLE
 from ._generic import GenericListener as _GenericListener
+from ._mouse_event import (
+    DOUBLE,
+    DOWN,
+    LEFT,
+    MIDDLE,
+    RIGHT,
+    UP,
+    X2,
+    ButtonEvent,
+    MoveEvent,
+    WheelEvent,
+    X,
+)
 
 _pressed_events = set()
 class _MouseListener(_GenericListener):
@@ -165,7 +178,7 @@ def hook(callback):
     each time it is moved, a key status changes or the wheel is spun. A mouse
     event is passed as argument, with type either `mouse.ButtonEvent`,
     `mouse.WheelEvent` or `mouse.MoveEvent`.
-    
+
     Returns the given callback for easier development.
     """
     _listener.add_handler(callback)
