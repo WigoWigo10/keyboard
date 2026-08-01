@@ -1,7 +1,16 @@
+"""
+Testes manuais e interativos do backend do Windows: exigem um teclado real
+(de preferência ABNT2 ou US-INTL, para exercitar o AltGr) e um operador para
+seguir as instruções na tela. Rode com `python tests/manual/altgr_and_stuck_keys.py`.
+"""
 import directkeys
 import time
 import subprocess
 import sys
+import os
+
+# Resolvido a partir deste arquivo, para o script funcionar de qualquer cwd.
+CRASH_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'simulate_stuck_key_crash.py')
 
 def read_next_keydown(suppress=True):
     """
@@ -53,8 +62,7 @@ def test_stuck_key_fix():
     print("\n--- INICIANDO TESTE 2: Correção de Tecla Presa ---")
 
     print("--> Passo 2a: Simulando script que trava com 'Ctrl' pressionado...")
-    crash_script_path = "run_test_2a_crash.py"
-    process = subprocess.Popen([sys.executable, crash_script_path])
+    process = subprocess.Popen([sys.executable, CRASH_SCRIPT])
     process.wait()
     time.sleep(1)
     print("--> Script travado. A tecla 'Ctrl' deve estar 'presa' no sistema.")
@@ -84,11 +92,8 @@ def test_stuck_key_fix():
     print("\n✅ Teste 2: SUCESSO!")
 
 if __name__ == "__main__":
-    required_script = "run_test_2a_crash.py"
-    try:
-        with open(required_script, "r") as f: pass
-    except FileNotFoundError:
-        print(f"\nERRO: O script auxiliar '{required_script}' não foi encontrado.")
+    if not os.path.exists(CRASH_SCRIPT):
+        print(f"\nERRO: O script auxiliar '{CRASH_SCRIPT}' não foi encontrado.")
         sys.exit(1)
 
     try:
