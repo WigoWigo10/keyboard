@@ -1,22 +1,15 @@
-# Auto detect text files and perform LF normalization
+# Normalise line endings in the repository, checking out the platform native
+# ones. This is what keeps the tree consistent between Windows and Linux.
 * text=auto
 
-# Custom for Visual Studio
-*.cs     diff=csharp
-*.sln    merge=union
-*.csproj merge=union
-*.vbproj merge=union
-*.fsproj merge=union
-*.dbproj merge=union
+*.py     text diff=python
+*.md     text
+*.toml   text
+*.yml    text
+*.yaml   text
+*.txt    text
+Makefile text
 
-# Standard to msysgit
-*.doc	 diff=astextplain
-*.DOC	 diff=astextplain
-*.docx diff=astextplain
-*.DOCX diff=astextplain
-*.dot  diff=astextplain
-*.DOT  diff=astextplain
-*.pdf  diff=astextplain
-*.PDF	 diff=astextplain
-*.rtf	 diff=astextplain
-*.RTF	 diff=astextplain
+# Generated from the directkeys module docstring by the `build` target, so it
+# should not count towards language statistics or clutter pull request diffs.
+README.md linguist-generated=true
