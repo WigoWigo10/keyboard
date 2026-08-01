@@ -561,8 +561,11 @@ class TestKeyboard(unittest.TestCase):
         t = Thread(target=process)
         t.daemon = True
         t.start()
-        # 0.01s sleep failed once already. Better solutions?
-        time.sleep(0.01)
+        # Racy by construction: the thread has to register both the recording
+        # hook and the suppressing hotkey for `space` before the events below
+        # are fed in. There is no public barrier to wait on, so this is a
+        # margin rather than a fix -- 0.01s was observed to lose the race.
+        time.sleep(0.2)
         self.do(du_a + du_b + du_space, du_a + du_b)
         self.assertEqual(queue.get(timeout=0.5), du_a + du_b + du_space)
 

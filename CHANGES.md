@@ -15,10 +15,32 @@ New features:
 - `KeyboardEvent.flags` exposes the low-level hook flags, and is included in
   `to_json()`. On Windows it currently carries the `LLKHF_EXTENDED` bit.
 
-Packaging:
+Also exposes `__version__` as the canonical version attribute. The upstream
+`version` name is kept as an alias, so nothing breaks.
+
+Packaging and project layout:
 
 - Renamed the package and the distribution to `directkeys`.
-- Metadata moved to `pyproject.toml`; Python 3.8+ is required.
+- **Python 3.9+ is now required.** 3.8 reached end of life in October 2024.
+  All the Python 2 compatibility shims are gone with it.
+- Metadata moved to `pyproject.toml`; `setup.py` is now only a shim.
+- The package moved to a `src/` layout, so the test run exercises the
+  installed distribution rather than the source tree.
+- Ruff (lint and format), pre-commit and an EditorConfig are configured, and
+  CI runs the suite plus a lint and a build check on Windows and Linux.
+
+Fixes carried over from the initial fork work:
+
+- `force_reset_keyboard()`, `get_stuck_keys()` and `reset_internal_state()`
+  were never loaded from the Windows backend and always resolved to no-op
+  stubs.
+- `get_modifiers()` built a 32772-element tuple on every keystroke whenever
+  shift was held, because `GetKeyState` reports the pressed bit as `0x8000`.
+- `set_alt_gr_abstraction()` never rebuilt the name tables.
+- Key events reported `is_keypad` as the extended-key flag, which is close to
+  the inverse of the intended value, and dropped the `scan_code or -vk`
+  fallback for keys with no scan code.
+- Importing the package on macOS no longer fails when pyobjc is missing.
 
 
 # 0.13.5

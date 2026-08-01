@@ -12,7 +12,8 @@ Take full control of your keyboard with this small Python library. Hook global e
 - **Listen** and **send** keyboard events.
 - Works with **Windows** and **Linux** (requires sudo), with experimental **OS X** support (thanks @glitchassassin!).
 - **Pure Python**, no C modules to be compiled.
-- **Zero dependencies**. Trivial to install and deploy, just copy the files.
+- **Zero dependencies** on Windows and Linux. Trivial to install and deploy.
+- **Python 3.9+**.
 - Complex hotkey support (e.g. `ctrl+shift+m, ctrl+space`) with controllable timeout.
 - Includes **high level API** (e.g. [record](#directkeys.record) and [play](#directkeys.play), [add_abbreviation](#directkeys.add_abbreviation)).
 - Maps keys as they actually are in your layout, with **full internationalization support** (e.g. `Ctrl+ç`).
@@ -51,6 +52,27 @@ import keyboard
 # after
 import directkeys as keyboard
 ```
+
+## Development
+
+```bash
+git clone https://github.com/WigoWigo10/keyboard
+cd keyboard
+pip install -e .
+pip install pytest pre-commit ruff
+pre-commit install
+```
+
+Run the checks the way CI does:
+
+```bash
+pytest              # the automated suite
+ruff check .        # lint
+ruff format --check .
+```
+
+`tests/manual/` holds interactive scripts that drive a real keyboard, so they
+are excluded from the automated run and have to be started by hand.
 
 
 ## Example
