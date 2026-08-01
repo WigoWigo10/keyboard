@@ -238,7 +238,12 @@ if _platform.system() == 'Windows':
 elif _platform.system() == 'Linux':
     from . import _nixkeyboard as _os_keyboard
 elif _platform.system() == 'Darwin':
-    from . import _darwinkeyboard as _os_keyboard
+    try:
+        from . import _darwinkeyboard as _os_keyboard
+    except ImportError:
+        # Pode acontecer durante a instalação, quando o setup.py importa este
+        # pacote para ler a versão antes de o pyobjc estar disponível.
+        _os_keyboard = None
 else:
     raise OSError("Unsupported platform '{}'".format(_platform.system()))
 
